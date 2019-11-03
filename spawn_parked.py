@@ -86,7 +86,7 @@ def main():
         for i,w in enumerate(spawn_points):
             if i in empty_lot:
                 continue
-            blueprint = random.choice(blueprints.filter('vehicle.bmw.*'))
+            blueprint = random.choice(blueprints.filter('vehicle.bmw.grandtourer'))
             color=random.choice(blueprint.get_attribute('color').recommended_values)
             blueprint.set_attribute('color',color)
             batch.append(carla.command.SpawnActor(blueprint,w))
