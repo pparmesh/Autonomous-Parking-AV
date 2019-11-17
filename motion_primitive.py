@@ -9,7 +9,7 @@ def traj_roll_out(x0, y0, theta0, num_steps=8, dt=0.1):
 	v=5 # Assuming a constant longitudinal velocity of 5 m/s
 	L=2.2	# Longitudinal length of 2.2 m
 	# Defining a range of discretized steering command values
-	delta=np.arange(-np.pi/4, np.pi/4, 0.05)
+	delta=np.arange(-np.pi/4, np.pi/4, 0.12)
 	for d in delta:
 		x=[x0]
 		y=[y0]
