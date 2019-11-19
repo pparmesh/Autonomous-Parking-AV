@@ -90,7 +90,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
     // It is a set of f_COORINATE, i.e it has location of state and its f value
     set<f_COORDINATE> open_list; 
     // Add my start cell to my open list
-    open_list.insert(make_pair (0.0, start_state)); 
+    open_list.insert(f_COORDINATE (0.0, start_state)); 
 
 
     // Expand till open list is not empty
@@ -108,7 +108,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
         // Remove it from the open list
         open_list.erase(open_list.begin());
         // Get index of this node
-        Global_State q_current = q.second;
+        Global_State q_current = q.st;
         int current_state = get_state_hash(q_current);
         closed_list[current_state] = true; 
         double str_angle = -m_max_steering_angle;
@@ -137,7 +137,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
 
                 if (global_graph[new_state].f == FLT_MAX || global_graph[new_state].f > fNew)
                 {
-                    open_list.insert(make_pair (fNew, q_new));
+                    open_list.insert(f_COORDINATE(fNew, q_new));
                     global_graph[new_state].f = fNew;
                     global_graph[new_state].g = gNew;
                     global_graph[new_state].h = hNew;

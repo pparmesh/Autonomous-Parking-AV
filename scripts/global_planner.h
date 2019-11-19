@@ -9,13 +9,50 @@
 #include <set>
 
 using namespace std;
+
+struct Global_State
+{
+    double x; 
+    double y; 
+    double theta;
+    Global_State(): x(0), y(0), theta(0)
+    {}
+    Global_State(double a, double b, double c): x(a), y(b), theta(c)
+    {}
+    Global_State(const Global_State& h)
+    {
+        this->x = h.x;
+        this->y = h.y;
+        this->theta = h.theta;
+    }
+    bool operator==(const Global_State& t) const
+    {
+        return (this->x==t.x && this->y==t.y && this->theta==t.theta);
+    }
+};
+
+struct f_COORDINATE
+{
+    double h;
+    Global_State st;
+    f_COORDINATE(): h(0), st()
+    {}
+    f_COORDINATE(double a, Global_State b): h(a), st(b)
+    {}
+    bool operator==(const f_COORDINATE& t) const
+    {
+        return (this->st == t.st);
+    }
+    bool operator<(const f_COORDINATE& t) const
+    {
+        return (this->h < t.h);
+    }
+};
+
 class GlobalPlanner
 {
     public:
-        struct Global_State
-        {
-            double x; double y; double theta;
-        };
+        
         Global_State m_start_state;
         Global_State m_goal_state;
         struct Graph_Node
@@ -28,7 +65,7 @@ class GlobalPlanner
         double m_dt; // Time step for lattice graph
         double m_desired_velocity;
         double m_car_length;
-        typedef pair<double, Global_State> f_COORDINATE;
+        // typedef pair<double, Global_State> f_COORDINATE;
         unordered_map<int, Graph_Node> global_graph;
     
     public:
