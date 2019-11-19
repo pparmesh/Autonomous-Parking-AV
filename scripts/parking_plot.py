@@ -3,6 +3,11 @@ from math import floor, ceil, sin, cos
 import matplotlib.pyplot as plt
 
 
+def wrap2pi(a):
+    if(a>=3.14):
+    	a=0
+    return a
+
 class Map():
 	def __init__(self):
 		self.w = 2.7572021484375
@@ -61,7 +66,7 @@ class Map():
 		occ_grid=np.zeros((nx,ny))
 		
 		# Randomly sampling the empty parking lots
-		n=10		# number of parking spots to leave empty
+		n=5		# number of parking spots to leave empty
 		empty_lot=np.random.choice(np.arange(spts.shape[0]), n)
 		print(empty_lot)
 		for i in range(len(spts)):
@@ -71,11 +76,11 @@ class Map():
 			else:
 				cp=20
 				# continue
-			ang = abs(spts[i,2]*np.pi/180)
+			ang = wrap2pi(abs(spts[i,2]*np.pi/180))
 
 			pl_x = [spts[i,0]-(l/2)*np.cos(ang)-(w/2)*np.sin(ang),spts[i,0]+(l/2)*np.cos(ang)+(w/2)*np.sin(ang)]
 			pl_y = [spts[i,1]-(w/2)*np.cos(ang)-(l/2)*np.sin(ang), spts[i,1]+(w/2)*np.cos(ang)+(l/2)*np.sin(ang)]
-			# print(i, pl_x, pl_y)
+			# print(i, pl_x, pl_y, ang)
 			# Computing the occupancy grid indices
 			occX, occY = self.xy2i(pl_x, pl_y)
 			occ_grid[occX, occY]=cp
