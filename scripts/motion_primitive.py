@@ -41,7 +41,7 @@ class motion():
 			# Adding the motion primitive array to the list
 			self.motion_primitives.append(p)
 
-		"""
+		
 		# Motion primitives for the backward direction ...................
 		d_del = 0.1
 		v = -1.2
@@ -60,7 +60,7 @@ class motion():
 				p=np.vstack((p, np.array([x0, y0, theta0])))
 			# Adding the motion primitive array to the list
 			self.motion_primitives.append(p)
-		"""
+		
 
 	def get_motion_patterns(self, state):
 		"""
