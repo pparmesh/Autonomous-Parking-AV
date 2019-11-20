@@ -39,7 +39,7 @@ Global_State GlobalPlanner::get_new_state(Global_State current_state, double str
     return primitive[primitive.size()-1];
 }
 
-int get_state_hash(Global_State state)
+int GlobalPlanner::get_state_hash(Global_State state)
 {
     return 0;
 }
@@ -152,4 +152,9 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
         return solutionPath(goal);
     }
     return path;
+}
+
+int main()
+{
+    return 0;
 }
