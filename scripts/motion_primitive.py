@@ -1,46 +1,98 @@
 import numpy as np
+from math import cos, sin, tan
 import matplotlib.pyplot as plt
 
-def traj_roll_out(x0, y0, theta0, num_steps=8, dt=0.1):
-	"""
-	Function to compute the trajectory from given (x0,yo,theta0).
-	Using linear interpolation, based on Kineamtic Bicycle model.
-	"""
-	L = 2.2	# Longitudinal length of 2.2 m
-	# Defining a range of discretized steering command values
+class motion():
+	def __init__(self, x=0, y=0, theta=0, n=8, delt=0.1):
+		self.x0 = x
+		self.y0 = y
+		self.theta0 = theta
+		self.dt = delt 		# Simulation fixed time-step 
+		self.num_steps = n  # Number of steps
+		self.L = 2.2	# vehcile wheel-base length
+		self.max_steer = 61		# maximium steering angle (radians)
+		self.motion_primitives = []
 
-	# Motion Primitives for the forward direction..............
-	d_theta = 0.08
-	v = 2 # Assuming a constant longitudinal velocity of 5 m/s
-	delta = np.arange(-np.pi*61/180, d_theta + np.pi*61/180, d_theta)
-	print("Number of discretizations for forward motion: {}".format(len(delta)))
-	for d in delta:
-		x = [x0]
-		y = [y0]
-		theta = [theta0]
-		for i in range(num_steps):
-			x.append(x[-1] + v*np.cos(theta[-1])*dt)
-			y.append(y[-1] + v*np.sin(theta[-1])*dt)
-			theta.append(theta[-1] + v*np.tan(d)*dt/L)
-		plt.plot(x,y,'black')
+	def generate_motion_patters(self):
+		"""
+		Function to pre-compute the set of motion pattersn from the initial state (0,0,0).
+		Motion Patterns computed using linear interpolation.
+		Based on Kinematic Bicycle model.
+		"""
 
-	#  Motion Primitives for the backward direction..............
-	d_theta = 0.1
-	v = -1.5
-	delta = np.arange(-np.pi*61/180, np.pi*61/180 + d_theta, d_theta)
-	print("Number of discretizations for backward motion: {}".format(len(delta)))
-	for d in delta:
-		x = [x0]
-		y = [y0]
-		theta = [theta0]
-		for i in range(num_steps):
-			x.append(x[-1] + v*np.cos(theta[-1])*dt)
-			y.append(y[-1] + v*np.sin(theta[-1])*dt)
-			theta.append(theta[-1] + v*np.tan(d)/dt)
-		plt.plot(x,y,'green')
+		# Motion primimtives for the forward direction.....................
+		d_del = 0.08	
+		dt = self.dt
+		v = 2	# Assuming a constant longitudinal velocity
+		delta = np.arange(-np.pi*self.max_steer/180, d_del + np.pi*self.max_steer/180, d_del)
+		print("Number of motion patterns in forward directon: {}".format(len(delta)))
+		for d in delta:
+			x0 = self.x0
+			y0 = self.y0
+			theta0 = self.theta0
+			p = np.array([x0, y0, theta0])
+			
+			for i in range(self.num_steps):
+				x0 += v*cos(theta0)*dt
+				y0 += v*sin(theta0)*dt
+				theta0 += v*tan(d)*dt/self.L
+				p = np.vstack((p,np.array([x0, y0, theta0])))
 
+			# Adding the motion primitive array to the list
+			self.motion_primitives.append(p)
+
+		"""
+		# Motion primitives for the backward direction ...................
+		d_del = 0.1
+		v = -1.2
+		delta = np.arange(-np.pi*self.max_steer/180, d_del + np.pi*self.max_steer/180, d_del)
+		print("Number of motion patterns for the backward direction: {}".format(len(delta)))
+		for d in delta:
+			x0 = self.x0
+			y0 = self.y0
+			theta0 = self.theta0
+			p = np.array([x0, y0, theta0])
+
+			for i in range(self.num_steps):
+				x0 += v*cos(theta0)*dt
+				y0 += v*sin(theta0)*dt
+				theta0 += v*tan(d)*dt/self.L
+				p=np.vstack((p, np.array([x0, y0, theta0])))
+			# Adding the motion primitive array to the list
+			self.motion_primitives.append(p)
+		"""
+
+	def get_motion_patterns(self, state):
+		"""
+		Function to transform the set of motion patterns to the current state parametrs.
+		"""
+		patterns = self.motion_primitives
+		n_p=[]
+		for i in range(len(patterns)):
+			p=patterns[i]
+			p[:,0] += state[0]
+			p[:,1] += state[1]
+			n_p.append(p)
+
+		return n_p
+
+
+	def plot_motion_patterns(self, patterns, st_0, cl = 'black'):
+		"""
+		Function to plot the motion patterns
+		"""
+		plt.scatter(st_0[0], st_0[1], s = 16)
+		for i in range(len(patterns)):
+			plt.plot(patterns[i][:,0], patterns[i][:,1], cl)
+
+
+if __name__ == '__main__':
+	mp = motion()
+	mp.generate_motion_patters()
+	motion_patterns = mp.motion_primitives
+	mp.plot_motion_patterns(motion_patterns, [0,0,0])
+
+	st2=[10,5,0]
+	pattern2 = mp.get_motion_patterns(st2)
+	mp.plot_motion_patterns(pattern2, st2, 'green')
 	plt.show()
-	print("Motion Primitives Plotted")
-
-if __name__=='__main__':
-	traj_roll_out(5,5,0)

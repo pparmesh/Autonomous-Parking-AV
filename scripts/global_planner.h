@@ -53,30 +53,39 @@ class GlobalPlanner
 {
     public:
         
-        Global_State m_start_state;
-        Global_State m_goal_state;
+        Global_State start_state;
+        Global_State goal_state;
         struct Graph_Node
         {
             Global_State state;
             int parent;
             double f = DBL_MAX, g = DBL_MAX, h = DBL_MAX; 
         };
-        double m_max_steering_angle; // Max steering angle of vehicle
-        double m_dt; // Time step for lattice graph
-        double m_desired_velocity;
-        double m_car_length;
-        // typedef pair<double, Global_State> f_COORDINATE;
+        double max_steering_angle; // Max steering angle of vehicle
+        double dt; // Time step for lattice graph
+        double desired_velocity;
+        double car_length;
+
+        vector<vector <Global_State>> motion_primitives;
+
         unordered_map<int, Graph_Node> global_graph;
     
     public:
+        void generate_motion_primitive(Global_State st_0);
+
         GlobalPlanner(Global_State start_state, Global_State goal_state, double max_steering_angle, double dt,
          double desire_vel, double car_length);
         
         vector<Global_State> get_motion_primitive(Global_State current_state, double steering_angle);
+        
         Global_State get_new_state(Global_State current_state, double str_angle);
+        
         int get_state_hash(Global_State state);
+        
         bool is_valid_primitive(vector<Global_State> motion_primitve);
+        
         vector<Global_State> solutionPath(int goal);
+        
         vector<Global_State> A_star(Global_State start_state, Global_State goal_state);
 };
 #endif

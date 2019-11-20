@@ -8,26 +8,77 @@
 
 using namespace std;
 
-GlobalPlanner::GlobalPlanner(Global_State start_state, Global_State goal_state, double max_steering_angle, double dt,
-double desire_vel, double car_length)
+GlobalPlanner::GlobalPlanner(Global_State st_state, Global_State g_state, double max_str_angle, double delt,
+double desire_vel, double car_len)
 {
-    m_start_state = start_state;
-    m_goal_state = goal_state;
-    m_max_steering_angle = max_steering_angle;
-    m_dt = dt;
-    m_desired_velocity = desire_vel;
-    m_car_length= car_length;
+    start_state = st_state;
+    goal_state = g_state;
+    max_steering_angle = max_str_angle;
+    dt = delt;
+    desired_velocity = desire_vel;
+    car_length= car_len;
 }
 
+void GlobalPlanner::generate_motion_primitive(Global_State st_0)
+{
+    // Function to Precompute the set of motion primitives
+    int num_steps = 8;
+    // ------Motion Primitives in the forward direction--------------
+    double f_Vx = 2;
+    double x = st_0.x;
+    double y = st_0.y;
+    double theta = st_0.theta;
+    double d_delta = 0.08;  // steering angle discretization in radians
+    vector<double> deltaF;
+    for(double d = -max_steering_angle; d <= max_steering_angle; d += d_delta)
+        deltaF.push_back(d);
+    for(double d_del : deltaF)
+    {
+        vector <Global_State> p;
+        p.push_back(st_0);
+        for(int i = 0; i < num_steps; ++i)
+        {
+            x += f_Vx*cos(theta)*dt;
+            y += f_Vx*sin(theta)*dt;
+            theta += f_Vx*tan(d_del)*dt/car_length;
+            p.push_back(Global_State(x, y, theta));
+        }
+        motion_primitives.push_back(p);
+    }
+
+    // -----------------Motion Primimtives in the backward direction-------------
+    // double b_Vx = 1.2;
+    // double x = st_0.x;
+    // double y = st_0.y;
+    // double theta = st_0.theta;
+    // double d_delta = 0.1;
+    // vector <double> deltaB;
+    // for(double d =-max_steering_angle; d<= max_steering_angle; d+=d_delta)
+    //     deltaB.push_back(d);
+    // for(double d_del :  deltaB)
+    // {
+    //     vector <Global_State> p;
+    //     p.push_back(st_0);
+    //     for(int i=0; i<=num_steps; i++)
+    //     {
+    //         x += b_Vx*cos(theta)*dt;
+    //         y += b_Vx*sin(theta)*dt;
+    //         theta += b_Vx*tan(d_del)*dt/car_length;
+    //         p.push_back(Global_State(x, y, theta));
+    //     }
+    //     motion_primitives.push_back(p);
+    // }
+
+}
 vector<Global_State> GlobalPlanner::get_motion_primitive(Global_State current_state, double steering_angle)
 {
     vector<Global_State> state_vector;
     Global_State state = current_state;
     for (double t=0; t<1; t++) // Change depending on allowed time for motion
     {
-        state.x = state.x + m_desired_velocity*cos(state.theta)*m_dt;
-        state.y = state.y + m_desired_velocity*sin(state.theta)*m_dt;
-        state.theta = state.theta + m_desired_velocity/m_car_length*tan(m_max_steering_angle)*m_dt;
+        state.x = state.x + desired_velocity*cos(state.theta)*dt;
+        state.y = state.y + desired_velocity*sin(state.theta)*dt;
+        state.theta = state.theta + desired_velocity/car_length*tan(max_steering_angle)*dt;
         state_vector.push_back(state);
     }
     return state_vector;
@@ -111,9 +162,9 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
         Global_State q_current = q.st;
         int current_state = get_state_hash(q_current);
         closed_list[current_state] = true; 
-        double str_angle = -m_max_steering_angle;
+        double str_angle = -max_steering_angle;
         vector<double> valid_actions;
-        while (str_angle<m_max_steering_angle)
+        while (str_angle<max_steering_angle)
         {
             vector<Global_State> motion_primitive = get_motion_primitive(q_current,str_angle);
             if (is_valid_primitive(motion_primitive))
@@ -156,5 +207,10 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
 
 int main()
 {
+    double dx = 0.1 ,dy = 0.1;  // Grid discretization 
+    double v_des = 1.2;     // Desrired Velocity
+    double l_car = 2.2;     // Wheelbase of the vehicle
+    double delT = 0.1;      // delta time of the simulation
+
     return 0;
 }
