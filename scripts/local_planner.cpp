@@ -31,29 +31,41 @@ MatrixXd LocalPLanner::homogenousTransWorldEgo(VehicleState state)
                 0, 0, 1;
     return homo_trans;
 }
-double LocalPLanner::getMaxPlanningTime(double vel_x, double vel_y)
+double LocalPLanner::getMaxPlanningTime()
 {
-    double planning_time_x = abs(node_end.x - node_start.x)/vel_x;
-    double planning_time_y = abs(node_end.y - node_start.y)/vel_y;
+    double planning_time_x = abs(m_node_end.x - m_node_start.x)/m_node_start.vel_x;
+    double planning_time_y = abs(m_node_end.y - m_node_start.y)/m_node_start.vel_y;
     return max(planning_time_x,planning_time_y);
 }
 
 // Member function for generating evasive trajectory
-MatrixXd LocalPLanner::getPolynomialCoefficients(double vel_x, double vel_y)
+MatrixXd LocalPLanner::getPolynomialCoefficients()
 {
     // Boundary vals is [xi,yi,xf,yf,vxi,vyi,axi,ayi]
     // minimum jerk trajectory is a 5th order polynomial
     // y = a0 + a1*t + a2*t^2 + a3*t^3 + a4*t^4 + a5*t^5
-    // Given initial and final values in pos, vel and acc (Note final acc is 0 and final vel is 0) coeffs are:
-    // MatrixXd boundary_vals = getBoundaryValsWorldFrame(_ego_state,y_final);
-    // Get vals in world frame
-    // cout<<
+    // Given initial and final values in pos, vel and acc 
+    
+    // Position
     double xi  = m_node_start.x;
     double yi = m_node_start.y;
 
     double xf = m_node_end.x;
     double yf = m_node_end.y;
-    // cout<<"World Pose: "<<world_pose_fin<<'\n'<<endl;
+    
+    //Velocity
+    double vxi  = m_node_start.vel_x;
+    double vyi = m_node_start.vel_y;
+
+    double vxf = m_node_end.vel_x;
+    double vyf = m_node_end.vel_y;
+
+    //Acceleration
+    double axi  = m_node_start.acc_x;
+    double ayi = m_node_start.acc_y;
+
+    double axf = m_node_end.acc_x;
+    double ayf = m_node_end.acc_y;
     
 
     return coeffs;
