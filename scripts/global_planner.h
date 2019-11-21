@@ -66,9 +66,17 @@ class MotionPrimitive
         MotionPrimitive()
         {}
 
-        MotionPrimitive(vector<Global_State>& p)
+        MotionPrimitive(const vector<Global_State>& p)
         {
-            for(Global_State g : p)
+            primitives.clear();
+            for(Global_State g: p)
+                this->primitives.push_back(g);
+        }
+        MotionPrimitive(const MotionPrimitive& p)
+        {
+            primitives.clear();
+            vector<Global_State> h = p.primitives; 
+            for(Global_State g : h)
                 this->primitives.push_back(g);
         }
 
@@ -107,7 +115,7 @@ class GlobalPlanner
 
         vector<MotionPrimitive> motion_primitives;
 
-        Matrix<double, 3, num_steps*(28+23)> primitive_M;
+        Matrix<double, 3, num_steps*(27+22)> primitive_M;
 
         unordered_map<int, GNode> gmap;
 

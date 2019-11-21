@@ -61,6 +61,8 @@ void GlobalPlanner::generate_motion_primitives()
     {
         MotionPrimitive p;
         p.insert_state(st_0);
+        primitive_M.col(m) << st_0.x, st_0.y, st_0.theta;
+        ++m;
         for(int i = 0; i < nsteps; ++i)
         {
             x += f_Vx*cos(theta)*dt;
@@ -71,10 +73,10 @@ void GlobalPlanner::generate_motion_primitives()
             //  Adding the motion primitives to the matrix
             primitive_M.col(m) << x, y, theta;
             ++m;
+            
         }
         motion_primitives.push_back(p);
     }
-
     // -----------------Motion Primimtives in the backward direction-------------
     double b_Vx = 1.2;
     x = st_0.x;
@@ -88,7 +90,9 @@ void GlobalPlanner::generate_motion_primitives()
     {
         MotionPrimitive p;
         p.insert_state(st_0);
-        for(int i=0; i<=nsteps; i++)
+        primitive_M.col(m) <<st_0.x, st_0.y, st_0.theta;
+        ++m;
+        for(int i=0; i<nsteps; i++)
         {
             x += b_Vx*cos(theta)*dt;
             y += b_Vx*sin(theta)*dt;
@@ -127,23 +131,24 @@ vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
     M << cos(dtheta), -sin(dtheta), d_x,
         sin(dtheta), cos(dtheta), d_y,
         0, 0, 1;
-    Matrix<double, 3, num_steps*(28+23)> n_p = M*primitive_M;
+    Matrix<double, 3, num_steps*(27+22)> n_p = M*primitive_M;
     
     // Converting the matrix to vector of motion primitives
     vector<MotionPrimitive> imap;
 
     MotionPrimitive p;
-    
-    for(int i=1;i<=n_p.cols();++i)
+    cout<<"number of cols: "<<n_p.cols()<<endl;
+    for(int i=0; i<n_p.cols();++i)
     {
         p.insert_state(Global_State(n_p.col(i)[0], n_p.col(i)[1], n_p.col(i)[2]+dtheta));
-        if(i%num_steps == 0)
+        if((i+1)%num_steps == 0)
         {
             MotionPrimitive p_new(p);
             imap.push_back(p_new);
             p.clear_primitives();
         }
     }
+    cout<<" imap length = "<<imap.size()<<endl;
     return imap;
 }
 
@@ -301,7 +306,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
             }         
         }    
     }
-
+    cout<<" Number of states expanded: "<<mexp<<endl;
     // -- Backtracking to compute the path if Reached Goal
     if (closed_list[goal])
     {
