@@ -60,7 +60,7 @@ class Map():
 		cp=1;
 
 		nx, ny = int((self.xlim[1]-self.xlim[0])/dx), int((self.ylim[1]-self.ylim[0])/dy)
-		# print('nx = {}, ny = {}'.format(nx,ny))
+		print('Size of the parking lot: {} x {}'.format(nx,ny))
 		
 		# Initializing a 2D array for the occupancy grid with all zeros
 		occ_grid=np.zeros((nx,ny))

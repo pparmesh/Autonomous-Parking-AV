@@ -62,6 +62,25 @@ class motion():
 			self.motion_primitives.append(p)
 		
 
+	def rotate_pattern(self, st2):
+		"""
+		Function to translate and rotate the motion pattern by theta
+		"""
+		dx = st2[0] - self.x0
+		dy = st2[1] - self.y0
+		dtheta = st2[2] - self.theta0
+		transformT = np.array([[cos(dtheta), -sin(dtheta), dx],[sin(dtheta), cos(dtheta), dy],[0,0,1]])
+		n_p = []
+		p0 = self.motion_primitives
+		for i in range(len(p0)):
+			p0_i = p0[i]
+			xyp = np.hstack((p0_i[:,:2], np.ones(p0_i.shape[0]).reshape(-1,1))).T
+			n_xyp = np.dot(transformT, xyp)
+			n_theta = p0_i[:,-1]+dtheta
+			p2 = np.hstack((n_xyp[:2, :].T, n_theta.reshape(-1,1)))
+			n_p.append(p2)
+		return n_p
+
 	def get_motion_patterns(self, state):
 		"""
 		Function to transform the set of motion patterns to the current state parametrs.
@@ -92,7 +111,7 @@ if __name__ == '__main__':
 	motion_patterns = mp.motion_primitives
 	mp.plot_motion_patterns(motion_patterns, [0,0,0])
 
-	st2=[10,5,0]
-	pattern2 = mp.get_motion_patterns(st2)
+	st2=[3,3, 3*np.pi/4]
+	pattern2 = mp.rotate_pattern(st2)
 	mp.plot_motion_patterns(pattern2, st2, 'green')
 	plt.show()

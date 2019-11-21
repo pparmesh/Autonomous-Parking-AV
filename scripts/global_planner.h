@@ -7,8 +7,16 @@
 #include <cfloat>
 #include <unordered_map>
 #include <set>
+#include <Eigen/Dense>
+
+#define num_steps 9
+#define PI 3.141592654
+#define mapX 920    // xlim [-62, 30]
+#define mapY 800    // ylim [-40,  40]
 
 using namespace std;
+using namespace Eigen;
+
 
 struct Global_State
 {
@@ -49,43 +57,106 @@ struct f_COORDINATE
     }
 };
 
+
+class MotionPrimitive
+{
+    private:
+        vector<Global_State> primitives;
+    public:
+        MotionPrimitive()
+        {}
+
+        MotionPrimitive(vector<Global_State>& p)
+        {
+            for(Global_State g : p)
+                this->primitives.push_back(g);
+        }
+
+        void insert_state(Global_State st);
+        
+        void clear_primitives();
+        
+        vector<Global_State> get_primitive();
+
+        Global_State next_state();
+
+};
+
 class GlobalPlanner
 {
     public:
         
         Global_State start_state;
         Global_State goal_state;
-        struct Graph_Node
+        struct GNode
         {
             Global_State state;
             int parent;
-            double f = DBL_MAX, g = DBL_MAX, h = DBL_MAX; 
+            double f;
+            double g;
+            double h;
+            GNode(): state(), parent(0), f(DBL_MAX), g(DBL_MAX), h(DBL_MAX)
+            {}
+            GNode(const Global_State& st, int p, double a, double b, double c): state(st), parent(p), f(a), g(b), h(c)
+            {}
         };
         double max_steering_angle; // Max steering angle of vehicle
         double dt; // Time step for lattice graph
         double desired_velocity;
         double car_length;
 
-        vector<vector <Global_State>> motion_primitives;
+        vector<MotionPrimitive> motion_primitives;
 
-        unordered_map<int, Graph_Node> global_graph;
+        Matrix<double, 3, num_steps*(28+23)> primitive_M;
+
+        unordered_map<int, GNode> gmap;
+
+        vector<double> xlim {-62, 30};
+        vector<double> ylim {-40, 40};
+        double dx = 0.1;
+        double dy = 0.1;
     
     public:
-        void generate_motion_primitive(Global_State st_0);
-
         GlobalPlanner(Global_State start_state, Global_State goal_state, double max_steering_angle, double dt,
          double desire_vel, double car_length);
+
+        void generate_motion_primitives();
+
+        double PrecomputeCost();
+
+        double compute_H(Global_State st);
         
-        vector<Global_State> get_motion_primitive(Global_State current_state, double steering_angle);
-        
-        Global_State get_new_state(Global_State current_state, double str_angle);
+        vector<MotionPrimitive> transform_primitive(Global_State n_st);
+
+        vector<int> xy2i(Global_State state);
         
         int get_state_hash(Global_State state);
+
+        bool CollisionCheck(MotionPrimitive motion);
         
-        bool is_valid_primitive(vector<Global_State> motion_primitve);
+        bool is_valid_primitive(MotionPrimitive motion);
         
         vector<Global_State> solutionPath(int goal);
         
         vector<Global_State> A_star(Global_State start_state, Global_State goal_state);
 };
 #endif
+
+/*
+ToDo's:
+    - Heuristic Computation (Preferably Pre-Compute)
+    - Cost Computation (Preferable Pre-Compute)
+    - Goal Region Define, (Check if Goal Reached)
+    - Collision Checking
+        -Preliminary : Circle Based
+        -Improved : 3 Circle Based
+        -Final : Swath generation (pre-compute) and check.
+    - Weighing the forward and backward motion primitives differently (in cost or heuristics)
+    - Occupancy Grid integration
+    - Anytime D* 
+
+Completed:
+    - A* Pseudo Code
+    - Motion Primitive Precomputation
+    - Motion Primitive Transformation
+*/
