@@ -1,4 +1,5 @@
 #include "global_planner.h"
+#include <ctime>
 // #include <iostream>
 // #include <math.h>
 // #include <vector>
@@ -227,7 +228,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
     // Add my start cell to my open list
     open_list.insert(f_COORDINATE (0.0, start_state)); 
 
-
+    int mexp = 0;
     // Expand till open list is not empty
     while(!open_list.empty() && !closed_list[goal])
     {   
@@ -238,6 +239,9 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
         // f-value then update it, otherwise add this index to the open list. 
         // Loop till goal state has not been expanded.
 
+        if(mexp > 2000)
+            break;
+        ++mexp;
         // Get index from openlist. Pop the first value from the open list.
         f_COORDINATE q = *open_list.begin();
         // Remove it from the open list
@@ -315,6 +319,8 @@ int main()
     double delT = 0.1;      // delta time of the simulation
     double steer_limit = PI*61/180;
 
+    clock_t start_t = clock();
+
     Global_State startS = Global_State(0,0,0);
     Global_State goalS = Global_State(15, 15, PI/4);
 
@@ -322,7 +328,8 @@ int main()
 
     // Prcomputing the motion primitives
     g_planner.generate_motion_primitives();
+    g_planner.A_star(startS, goalS);
 
-
+    cout<<" Time taken for computation : "<<(double)(clock() - start_t)/CLOCKS_PER_SEC<<" s"<<endl;
     return 0;
 }
