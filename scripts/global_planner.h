@@ -107,6 +107,14 @@ class GlobalPlanner
             {}
             GNode(const Global_State& st, int p, double a, double b, double c): state(st), parent(p), f(a), g(b), h(c)
             {}
+            GNode(const GNode& pp)
+            {
+                this->state = Global_State(pp.state);
+                this->parent = pp.parent;
+                this->f = pp.f;
+                this->g = pp.g;
+                this->h = pp.h;
+            }
         };
         double max_steering_angle; // Max steering angle of vehicle
         double dt; // Time step for lattice graph
@@ -114,6 +122,8 @@ class GlobalPlanner
         double car_length;
 
         vector<MotionPrimitive> motion_primitives;
+
+        vector<double> cost_of_motion;
 
         Matrix<double, 3, num_steps*(27+22)> primitive_M;
 
@@ -130,7 +140,7 @@ class GlobalPlanner
 
         void generate_motion_primitives();
 
-        double PrecomputeCost();
+        void PrecomputeCost(vector<double> steerF, vector<double> steerB);
 
         double compute_H(Global_State st);
         
@@ -141,6 +151,8 @@ class GlobalPlanner
         int get_state_hash(Global_State state);
 
         bool CollisionCheck(MotionPrimitive motion);
+
+        bool isGoalState(Global_State st);
         
         bool is_valid_primitive(MotionPrimitive motion);
         
@@ -153,7 +165,6 @@ class GlobalPlanner
 /*
 ToDo's:
     - Heuristic Computation (Preferably Pre-Compute)
-    - Cost Computation (Preferable Pre-Compute)
     - Goal Region Define, (Check if Goal Reached)
     - Collision Checking
         -Preliminary : Circle Based
@@ -167,4 +178,7 @@ Completed:
     - A* Pseudo Code
     - Motion Primitive Precomputation
     - Motion Primitive Transformation
+    - Cost Computation (Preferable Pre-Compute) -> forward and backward primitives weighed differently.
+    - Preliminary Goal State check implemented
+
 */

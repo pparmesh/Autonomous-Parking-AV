@@ -76,6 +76,7 @@ void GlobalPlanner::generate_motion_primitives()
             
         }
         motion_primitives.push_back(p);
+
     }
     // -----------------Motion Primimtives in the backward direction-------------
     double b_Vx = 1.2;
@@ -104,15 +105,31 @@ void GlobalPlanner::generate_motion_primitives()
             ++m;
         }
         motion_primitives.push_back(p);
+    
+        // Precomputing the cost of each motion primitive
+        PrecomputeCost(deltaF, deltaB);
     }
 
 }
 
-double GlobalPlanner::PrecomputeCost()
+void GlobalPlanner::PrecomputeCost(vector<double> steerF, vector<double> steerB)
 {
     // Function to pre-compute the cost for different motion patterns weighed on curvature, forward/reverse.
-    return 0;
+    double cost;
+    for(double delta : steerF)
+    {
+        cost = abs(delta)*180/PI;
+        cost_of_motion.push_back(cost);   
+    }
+
+    // For Backward motion primitives---------------------
+    for(double delta : steerB)
+    {
+        cost = 2*abs(delta)*180/PI;     // Setting the cost of backward motion = 2*cost of forward with same steering angle
+        cost_of_motion.push_back(cost);
+    }
 }
+
 
 double GlobalPlanner::compute_H(Global_State st)
 {
@@ -137,7 +154,6 @@ vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
     vector<MotionPrimitive> imap;
 
     MotionPrimitive p;
-    cout<<"number of cols: "<<n_p.cols()<<endl;
     for(int i=0; i<n_p.cols();++i)
     {
         p.insert_state(Global_State(n_p.col(i)[0], n_p.col(i)[1], n_p.col(i)[2]+dtheta));
@@ -148,7 +164,6 @@ vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
             p.clear_primitives();
         }
     }
-    cout<<" imap length = "<<imap.size()<<endl;
     return imap;
 }
 
@@ -157,7 +172,7 @@ vector<int> GlobalPlanner::xy2i(Global_State state)
     //Function to conver the parking lot spatial location to occupancy grid indices
      
     int ax = floor((state.x - xlim[0])/dx);
-    int ay = floor((state.y - xlim[1])/dy);
+    int ay = floor((state.y - ylim[0])/dy);
     vector <int> pi {ax, ay};
     return pi;
 }
@@ -195,6 +210,20 @@ bool GlobalPlanner::is_valid_primitive(MotionPrimitive motion)
 
     return 1;
 }
+
+bool GlobalPlanner::isGoalState(Global_State st)
+{
+    // Function to check if the goal_state st can be considered as the goal state
+    // Considering a euclidean distance < epsilon to check if goal found (Temporary)
+    double eps = 3;
+    double diff = sqrt((st.x-goal_state.x)*(st.x-goal_state.x) + (st.y-goal_state.y)*(st.y-goal_state.y) + (st.theta-goal_state.theta)*(st.theta-goal_state.theta));
+    if(diff < eps)
+        return 1;
+    // else
+    //     cout<<"diff = "<<diff<<" st:("<<st.x<<","<<st.y<<"); goal st:("<<goal_state.x<<","<<goal_state.y<<")"<<endl;
+    return 0;
+}
+
 
 vector<Global_State> GlobalPlanner::solutionPath(int goal)
 {
@@ -244,7 +273,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
         // f-value then update it, otherwise add this index to the open list. 
         // Loop till goal state has not been expanded.
 
-        if(mexp > 2000)
+        if(mexp > 10000)
             break;
         ++mexp;
         // Get index from openlist. Pop the first value from the open list.
@@ -260,11 +289,14 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
             continue;
         
         // ------If Goal reached, terminate-----------
-        // if(goal Reached)
-        // {
-        //     add goal state to true
-        //     break;
-        // }
+        if(isGoalState(q_current))
+        {
+            cout<<" Goal State Reached"<<endl;
+            closed_list[goal]=true;
+            gmap[goal] = gmap[current_state];
+            gmap[goal].state = goal_state;
+            break;
+        }
 
 
         // Pushing the state into current state
@@ -272,8 +304,9 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
 
         vector<MotionPrimitive> actions = transform_primitive(q_current);   // computing the set of motion patterns for the current set
 
-        for (MotionPrimitive step : actions)
+        for (int mp_i=0;mp_i<actions.size();++mp_i)
         {
+            MotionPrimitive step = actions[mp_i];
             // Check if motion pattern is valid
             if(! is_valid_primitive(step))
                 continue;
@@ -291,7 +324,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
             if((closed_list.find(new_state) != closed_list.end()) && closed_list[new_state])
                 continue;   // Skipping if the state is already in the closed list.
 
-            double cost = PrecomputeCost();
+            double cost = cost_of_motion[mp_i];
             hNew = compute_H(q_new);
             
             if(gmap.find(new_state) == gmap.end())
