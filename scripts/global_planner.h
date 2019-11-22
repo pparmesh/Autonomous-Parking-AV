@@ -92,7 +92,7 @@ class MotionPrimitive
 
 class GlobalPlanner
 {
-    public:
+    private:
         
         Global_State start_state;
         Global_State goal_state;
@@ -126,7 +126,7 @@ class GlobalPlanner
 
         vector<double> cost_of_motion;
 
-        Matrix<double, 3, num_steps*(27+22)> primitive_M;
+        Matrix<double, 3, num_steps*(28+23)> primitive_M;
 
         unordered_map<int, GNode> gmap;
 
@@ -168,9 +168,9 @@ class GlobalPlanner
 
 /*
 ToDo's:
-    - Heuristic Computation (Preferably Pre-Compute)
     - Goal Region Define, (Check if Goal Reached)
     - Occupancy Grid
+    - Heuristic Computation (Preferably Pre-Compute)
     - Collision Checking
         -Preliminary : Circle Based
         -Improved : 3 Circle Based

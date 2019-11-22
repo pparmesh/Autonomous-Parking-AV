@@ -54,9 +54,15 @@ void GlobalPlanner::generate_motion_primitives()
     double y = st_0.y;
     double theta = st_0.theta;
     double d_delta = 0.08;  // steering angle discretization in radians
+    
+    // Formulating a list of discretized steering angles
     vector<double> deltaF;
-    for(double d = -max_steering_angle; d <= max_steering_angle; d += d_delta)
+    for(double d=-d_delta;d>=-max_steering_angle;d-=d_delta)
+        deltaF.insert(deltaF.begin(),d);
+    deltaF.push_back(0);
+    for(double d = d_delta; d<= max_steering_angle;d += d_delta)
         deltaF.push_back(d);
+
     for(double d_del : deltaF)
     {
         MotionPrimitive p;
@@ -84,9 +90,14 @@ void GlobalPlanner::generate_motion_primitives()
     y = st_0.y;
     theta = st_0.theta;
     d_delta = 0.1;
+
     vector <double> deltaB;
-    for(double d =-max_steering_angle; d<= max_steering_angle; d+=d_delta)
+    for(double d =-d_delta;d>=-max_steering_angle;d-=d_delta)
+        deltaB.insert(deltaB.begin(), d);
+    deltaB.push_back(0);
+    for(double d=d_delta;d<= max_steering_angle; d+=d_delta)
         deltaB.push_back(d);
+    
     for(double d_del :  deltaB)
     {
         MotionPrimitive p;
@@ -107,8 +118,14 @@ void GlobalPlanner::generate_motion_primitives()
         motion_primitives.push_back(p);
     
         // Precomputing the cost of each motion primitive
-        PrecomputeCost(deltaF, deltaB);
     }
+    for(double d : deltaF)
+        cout<<d<<" ";
+    cout<<endl;
+    for(double d : deltaB)
+        cout<<d<<" ";
+    cout<<endl;
+    PrecomputeCost(deltaF, deltaB);
 
 }
 
@@ -148,7 +165,7 @@ vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
     M << cos(dtheta), -sin(dtheta), d_x,
         sin(dtheta), cos(dtheta), d_y,
         0, 0, 1;
-    Matrix<double, 3, num_steps*(27+22)> n_p = M*primitive_M;
+    Matrix<double, 3, num_steps*(28+23)> n_p = M*primitive_M;
     
     // Converting the matrix to vector of motion primitives
     vector<MotionPrimitive> imap;
@@ -215,12 +232,13 @@ bool GlobalPlanner::isGoalState(Global_State st)
 {
     // Function to check if the goal_state st can be considered as the goal state
     // Considering a euclidean distance < epsilon to check if goal found (Temporary)
-    double eps = 3;
-    double diff = sqrt((st.x-goal_state.x)*(st.x-goal_state.x) + (st.y-goal_state.y)*(st.y-goal_state.y) + (st.theta-goal_state.theta)*(st.theta-goal_state.theta));
-    if(diff < eps)
+    double eps = 2;
+    double diff = sqrt((st.x-goal_state.x)*(st.x-goal_state.x) + (st.y-goal_state.y)*(st.y-goal_state.y));// + (st.theta-goal_state.theta)*(st.theta-goal_state.theta));
+
+    double dstr = PI/18;
+    if(diff < eps && abs(st.theta-goal_state.theta)<dstr)
         return 1;
-    // else
-    //     cout<<"diff = "<<diff<<" st:("<<st.x<<","<<st.y<<"); goal st:("<<goal_state.x<<","<<goal_state.y<<")"<<endl;
+
     return 0;
 }
 
@@ -273,7 +291,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
         // f-value then update it, otherwise add this index to the open list. 
         // Loop till goal state has not been expanded.
 
-        if(mexp > 10000)
+        if(mexp > 30000)
             break;
         ++mexp;
         // Get index from openlist. Pop the first value from the open list.
@@ -340,6 +358,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
         }    
     }
     cout<<" Number of states expanded: "<<mexp<<endl;
+    cout<<" Open list size: "<<open_list.size()<<endl;
     // -- Backtracking to compute the path if Reached Goal
     if (closed_list[goal])
     {
@@ -359,15 +378,19 @@ int main()
 
     clock_t start_t = clock();
 
-    Global_State startS = Global_State(0,0,0);
-    Global_State goalS = Global_State(15, 15, PI/4);
+    Global_State startS = Global_State(-44.81,-31.04,PI/2);
+    Global_State goalS = Global_State(-13.5, -31.27, PI/2);
 
     GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car);
 
     // Prcomputing the motion primitives
     g_planner.generate_motion_primitives();
-    g_planner.A_star(startS, goalS);
+    // g_planner.A_star(startS, goalS);
 
     cout<<" Time taken for computation : "<<(double)(clock() - start_t)/CLOCKS_PER_SEC<<" s"<<endl;
     return 0;
-}
+}    // if(diff < eps)
+    //     return 1;
+    // else
+    //     cout<<"diff = "<<diff<<" st:("<<st.x<<","<<st.y<<"); goal st:("<<goal_state.x<<","<<goal_state.y<<")"<<endl;
+
