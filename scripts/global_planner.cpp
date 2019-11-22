@@ -131,9 +131,9 @@ void GlobalPlanner::PrecomputeCost(vector<double> steerF, vector<double> steerB)
 }
 
 
-double GlobalPlanner::compute_H(Global_State st)
+double GlobalPlanner::computeH(Global_State st)
 {
-
+    return 0.0;
 }
 
 vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
@@ -260,7 +260,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
     // It is a set of f_COORINATE, i.e it has location of state and its f value
     set<f_COORDINATE> open_list; 
     // Add my start cell to my open list
-    open_list.insert(f_COORDINATE (0.0, start_state)); 
+    open_list.insert(make_pair(0.0, start)); 
 
     int mexp = 0;
     // Expand till open list is not empty
@@ -281,7 +281,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
         // Remove it from the open list
         open_list.erase(open_list.begin());
         // Get index of this node
-        Global_State q_current = q.st;
+        Global_State q_current = gmap[q.second].state;
         int current_state = get_state_hash(q_current);
         
         // Checking if the state has already been expanded
@@ -325,7 +325,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
                 continue;   // Skipping if the state is already in the closed list.
 
             double cost = cost_of_motion[mp_i];
-            hNew = compute_H(q_new);
+            hNew = computeH(q_new);
             
             if(gmap.find(new_state) == gmap.end())
                 gmap[new_state] = GNode(q_new, current_state, DBL_MAX, DBL_MAX, DBL_MAX);
@@ -335,7 +335,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
                 gNew = gmap[current_state].g;
                 fNew = gNew + hNew;
                 gmap[new_state] = GNode(q_new, current_state, fNew, gNew, hNew);
-                open_list.insert(f_COORDINATE(fNew, q_new));
+                open_list.insert(make_pair(fNew, new_state));
             }         
         }    
     }

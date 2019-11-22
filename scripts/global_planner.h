@@ -39,23 +39,23 @@ struct Global_State
     }
 };
 
-struct f_COORDINATE
-{
-    double h;
-    Global_State st;
-    f_COORDINATE(): h(0), st()
-    {}
-    f_COORDINATE(double a, Global_State b): h(a), st(b)
-    {}
-    bool operator==(const f_COORDINATE& t) const
-    {
-        return (this->st == t.st);
-    }
-    bool operator<(const f_COORDINATE& t) const
-    {
-        return (this->h < t.h);
-    }
-};
+// struct f_COORDINATE
+// {
+//     double h;
+//     Global_State st;
+//     f_COORDINATE(): h(0), st()
+//     {}
+//     f_COORDINATE(double a, Global_State b): h(a), st(b)
+//     {}
+//     bool operator==(const f_COORDINATE& t) const
+//     {
+//         return (this->st == t.st);
+//     }
+//     bool operator<(const f_COORDINATE& t) const
+//     {
+//         return (this->h < t.h);
+//     }
+// };
 
 
 class MotionPrimitive
@@ -120,6 +120,7 @@ class GlobalPlanner
         double dt; // Time step for lattice graph
         double desired_velocity;
         double car_length;
+        typedef pair <double, int> f_COORDINATE;
 
         vector<MotionPrimitive> motion_primitives;
 
@@ -142,11 +143,14 @@ class GlobalPlanner
 
         void PrecomputeCost(vector<double> steerF, vector<double> steerB);
 
-        double compute_H(Global_State st);
+        // double compute_H(Global_State st);
+        double computeH(Global_State st);
         
         vector<MotionPrimitive> transform_primitive(Global_State n_st);
 
         vector<int> xy2i(Global_State state);
+
+        vector<double> i2xy(vector <int> sti);
         
         int get_state_hash(Global_State state);
 
@@ -166,6 +170,7 @@ class GlobalPlanner
 ToDo's:
     - Heuristic Computation (Preferably Pre-Compute)
     - Goal Region Define, (Check if Goal Reached)
+    - Occupancy Grid
     - Collision Checking
         -Preliminary : Circle Based
         -Improved : 3 Circle Based
