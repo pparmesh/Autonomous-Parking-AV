@@ -119,14 +119,18 @@ void GlobalPlanner::generate_motion_primitives()
     
         // Precomputing the cost of each motion primitive
     }
-    for(double d : deltaF)
-        cout<<d<<" ";
-    cout<<endl;
-    for(double d : deltaB)
-        cout<<d<<" ";
-    cout<<endl;
+    
     PrecomputeCost(deltaF, deltaB);
 
+    // //  Priniting the motion primitives and cost:::
+    // vector <double> st_ang;
+    // for(double f : deltaF)
+    //     st_ang.push_back(f);
+    // for(double f : deltaB)
+    //     st_ang.push_back(f);
+    
+    // for(int i=0;i<st_ang.size();++i)
+    //     cout<<"Angle: "<<st_ang[i]<<" "<<" ;Cost: "<<cost_of_motion[i]<<endl;
 }
 
 void GlobalPlanner::PrecomputeCost(vector<double> steerF, vector<double> steerB)
@@ -142,7 +146,10 @@ void GlobalPlanner::PrecomputeCost(vector<double> steerF, vector<double> steerB)
     // For Backward motion primitives---------------------
     for(double delta : steerB)
     {
-        cost = 2*abs(delta)*180/PI;     // Setting the cost of backward motion = 2*cost of forward with same steering angle
+        if(delta == 0)
+            cost = 4;
+        else
+            cost = 4*abs(delta)*180/PI;     // Setting the cost of backward motion = 2*cost of forward with same steering angle
         cost_of_motion.push_back(cost);
     }
 }
@@ -194,11 +201,13 @@ vector<int> GlobalPlanner::xy2i(Global_State state)
     return pi;
 }
 
-int GlobalPlanner::get_state_hash(Global_State state)
+string GlobalPlanner::get_state_hash(Global_State state)
 {
     // Function to compute unique hash key for each set
     vector<int> ind = xy2i(state);
-    int st_hash = ind[0] + ind[1]*mapX;
+    string st_hash = "";
+    string g = to_string(state.theta);
+    st_hash += to_string(ind[0]) + to_string(ind[1]) + g.substr(0.4); 
     return st_hash;
 }
 
@@ -234,20 +243,21 @@ bool GlobalPlanner::isGoalState(Global_State st)
     // Considering a euclidean distance < epsilon to check if goal found (Temporary)
     double eps = 2;
     double diff = sqrt((st.x-goal_state.x)*(st.x-goal_state.x) + (st.y-goal_state.y)*(st.y-goal_state.y));// + (st.theta-goal_state.theta)*(st.theta-goal_state.theta));
-
+    double d_thet = abs(st.theta-goal_state.theta);
     double dstr = PI/18;
-    if(diff < eps && abs(st.theta-goal_state.theta)<dstr)
+    // cout<<diff<<" "<<d_thet<<endl;
+    if(diff < eps && d_thet<dstr)
         return 1;
 
     return 0;
 }
 
 
-vector<Global_State> GlobalPlanner::solutionPath(int goal)
+vector<Global_State> GlobalPlanner::solutionPath(string goal)
 {
     vector< Global_State> waypoints;
-    int curr_state = goal;
-    while (gmap[curr_state].parent!=-1)
+    string curr_state = goal;
+    while (gmap[curr_state].parent!="-1")
     {
         waypoints.insert(waypoints.begin(), gmap[curr_state].state);
         curr_state = gmap[curr_state].parent;
@@ -260,9 +270,9 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
     vector<Global_State> path;
 
     // closed list to keep track of expanded nodes
-    unordered_map <int, bool> closed_list;
-    int start = get_state_hash(start_state);
-    int goal = get_state_hash(goal_state);
+    unordered_map <string, bool> closed_list;
+    string start = get_state_hash(start_state);
+    string goal = get_state_hash(goal_state);
     closed_list[goal] = false;
     closed_list[start] = false;
 
@@ -271,7 +281,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
     
 
     // Inititalize the start cell. It has no parents and its f, g & h values are 0
-    gmap[start] = GNode(start_state, -1, 0, 0, 0);    // start cell as its parent as itself
+    gmap[start] = GNode(start_state, "-1", 0, 0, 0);    // start cell as its parent as itself
     
 
     // Implement the open list to keep track of states to expand using a set
@@ -291,7 +301,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
         // f-value then update it, otherwise add this index to the open list. 
         // Loop till goal state has not been expanded.
 
-        if(mexp > 30000)
+        if(mexp > 20000)
             break;
         ++mexp;
         // Get index from openlist. Pop the first value from the open list.
@@ -300,25 +310,33 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
         open_list.erase(open_list.begin());
         // Get index of this node
         Global_State q_current = gmap[q.second].state;
-        int current_state = get_state_hash(q_current);
+        string curr_state = get_state_hash(q_current);
         
         // Checking if the state has already been expanded
-        if((closed_list.find(current_state)!=closed_list.end()) && closed_list[current_state])
+        if((closed_list.find(curr_state)!=closed_list.end()) && closed_list[curr_state])
             continue;
         
         // ------If Goal reached, terminate-----------
+        if(curr_state == goal)
+        {
+            cout<<" Goal Reached" << endl;
+            cout<<q_current.x <<" "<<q_current.y<<" "<<q_current.theta<<endl;
+            cout<<goal_state.x<<" "<<goal_state.y<<" "<<goal_state.theta<<endl;
+            closed_list[goal] = true;
+            break;
+        }
         if(isGoalState(q_current))
         {
             cout<<" Goal State Reached"<<endl;
             closed_list[goal]=true;
-            gmap[goal] = gmap[current_state];
+            gmap[goal] = gmap[curr_state];
             gmap[goal].state = goal_state;
             break;
         }
 
 
         // Pushing the state into current state
-        closed_list[current_state] = true; 
+        closed_list[curr_state] = true; 
 
         vector<MotionPrimitive> actions = transform_primitive(q_current);   // computing the set of motion patterns for the current set
 
@@ -337,7 +355,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
 
             double fNew, gNew, hNew; // Variables used to find f, g & h values
             
-            int new_state = get_state_hash(q_new);
+            string new_state = get_state_hash(q_new);
 
             if((closed_list.find(new_state) != closed_list.end()) && closed_list[new_state])
                 continue;   // Skipping if the state is already in the closed list.
@@ -346,13 +364,13 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
             hNew = computeH(q_new);
             
             if(gmap.find(new_state) == gmap.end())
-                gmap[new_state] = GNode(q_new, current_state, DBL_MAX, DBL_MAX, DBL_MAX);
+                gmap[new_state] = GNode(q_new, curr_state, DBL_MAX, DBL_MAX, DBL_MAX);
 
-            if(gmap[new_state].g > gmap[current_state].g + cost)
+            if(gmap[new_state].g > gmap[curr_state].g + cost)
             {
-                gNew = gmap[current_state].g;
+                gNew = gmap[curr_state].g;
                 fNew = gNew + hNew;
-                gmap[new_state] = GNode(q_new, current_state, fNew, gNew, hNew);
+                gmap[new_state] = GNode(q_new, curr_state, fNew, gNew, hNew);
                 open_list.insert(make_pair(fNew, new_state));
             }         
         }    
@@ -378,19 +396,17 @@ int main()
 
     clock_t start_t = clock();
 
-    Global_State startS = Global_State(-44.81,-31.04,PI/2);
-    Global_State goalS = Global_State(-13.5, -31.27, PI/2);
+    // Global_State startS = Global_State(-44.81,-31.04,PI/2);
+    // Global_State goalS = Global_State(-13.5, -31.27, PI/2);
+    Global_State startS = Global_State(-48, 11.4, 0);
+    Global_State goalS = Global_State(25, 11.4, 0);
 
     GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car);
 
     // Prcomputing the motion primitives
     g_planner.generate_motion_primitives();
-    // g_planner.A_star(startS, goalS);
+    g_planner.A_star(startS, goalS);
 
     cout<<" Time taken for computation : "<<(double)(clock() - start_t)/CLOCKS_PER_SEC<<" s"<<endl;
     return 0;
-}    // if(diff < eps)
-    //     return 1;
-    // else
-    //     cout<<"diff = "<<diff<<" st:("<<st.x<<","<<st.y<<"); goal st:("<<goal_state.x<<","<<goal_state.y<<")"<<endl;
-
+}   

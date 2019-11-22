@@ -99,13 +99,13 @@ class GlobalPlanner
         struct GNode
         {
             Global_State state;
-            int parent;
+            string parent;
             double f;
             double g;
             double h;
-            GNode(): state(), parent(0), f(DBL_MAX), g(DBL_MAX), h(DBL_MAX)
+            GNode(): state(), parent(""), f(DBL_MAX), g(DBL_MAX), h(DBL_MAX)
             {}
-            GNode(const Global_State& st, int p, double a, double b, double c): state(st), parent(p), f(a), g(b), h(c)
+            GNode(const Global_State& st, string p, double a, double b, double c): state(st), parent(p), f(a), g(b), h(c)
             {}
             GNode(const GNode& pp)
             {
@@ -120,7 +120,7 @@ class GlobalPlanner
         double dt; // Time step for lattice graph
         double desired_velocity;
         double car_length;
-        typedef pair <double, int> f_COORDINATE;
+        typedef pair <double, string> f_COORDINATE;
 
         vector<MotionPrimitive> motion_primitives;
 
@@ -128,7 +128,7 @@ class GlobalPlanner
 
         Matrix<double, 3, num_steps*(28+23)> primitive_M;
 
-        unordered_map<int, GNode> gmap;
+        unordered_map<string, GNode> gmap;
 
         vector<double> xlim {-62, 30};
         vector<double> ylim {-40, 40};
@@ -152,7 +152,7 @@ class GlobalPlanner
 
         vector<double> i2xy(vector <int> sti);
         
-        int get_state_hash(Global_State state);
+        string get_state_hash(Global_State state);
 
         bool CollisionCheck(MotionPrimitive motion);
 
@@ -160,7 +160,7 @@ class GlobalPlanner
         
         bool is_valid_primitive(MotionPrimitive motion);
         
-        vector<Global_State> solutionPath(int goal);
+        vector<Global_State> solutionPath(string goal);
         
         vector<Global_State> A_star(Global_State start_state, Global_State goal_state);
 };
@@ -168,6 +168,7 @@ class GlobalPlanner
 
 /*
 ToDo's:
+    - Update state_hash to incorporate [x,y,theta], & not just [x,y]
     - Goal Region Define, (Check if Goal Reached)
     - Occupancy Grid
     - Heuristic Computation (Preferably Pre-Compute)
