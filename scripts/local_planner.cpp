@@ -22,15 +22,6 @@ double LocalPLanner::getCtrlFreq() { return m_ctrl_freq; } // Getter for control
 
 void LocalPLanner::setCtrlFreq(double new_ctrl_freq) { m_ctrl_freq = new_ctrl_freq; } // Setter for control freq
 
-
-MatrixXd LocalPLanner::homogenousTransWorldEgo(VehicleState state)
-{
-    MatrixXd homo_trans(3,3);
-    homo_trans<<cos(_ego_state.yaw), -sin(_ego_state.yaw), _ego_state.x,
-                sin(_ego_state.yaw), cos(_ego_state.yaw), _ego_state.y,
-                0, 0, 1;
-    return homo_trans;
-}
 double LocalPLanner::getMaxPlanningTime()
 {
     double planning_time_x = abs(m_node_end.x - m_node_start.x)/m_node_start.vel_x;
@@ -45,7 +36,7 @@ MatrixXd LocalPLanner::getPolynomialCoefficients()
     // minimum jerk trajectory is a 5th order polynomial
     // y = a0 + a1*t + a2*t^2 + a3*t^3 + a4*t^4 + a5*t^5
     // Given initial and final values in pos, vel and acc 
-    
+    double T = getMaxPlanningTime();
     // Position
     double xi  = m_node_start.x;
     double yi = m_node_start.y;
@@ -66,17 +57,58 @@ MatrixXd LocalPLanner::getPolynomialCoefficients()
 
     double axf = m_node_end.acc_x;
     double ayf = m_node_end.acc_y;
+
+    MatrixXd coeffs(4, 6); // Matrix of coefficients
+    // Populate matrix coeffs
+    // a0 = xi
+    // a1 = vi
+    // a2 = Ai/2
+    // a3 = -(20*xi-20*xf + 8*T*vf + 12*T*vi -Af*T^2 + 3*Ai*T^2)/(2*T^3)
+    // a4 = (30*xi- 30*xf + 14*T*vf + 16*T*vi - 2*Af*T^2 + 3*Ai*T^2)/(2*T^4)
+    // a5 = -(12*xi-12*xf + 6*T*vf + 6*T*vi - Af*T^2 + Ai*T^2)/(2*T^5)
+
+    // Pose x
+    coeffs(0,0) = xi;
+    coeffs(0,1) = vxi;
+    coeffs(0,2) = axi/2;
+    coeffs(0,3) = -(20*xi - 20*xf + 8*T*vxf + 12*T*vxi - axf*T*T + 3*axi*T*T)/(2*pow(T,3));
+    coeffs(0,4) = (30*xi- 30*xf + 14*T*vxf + 16*T*vxi - 2*axf*T*T + 3*axi*T*T)/(2*pow(T,4));
+    coeffs(0,5) = -(12*xi-12*xf + 6*T*vxf + 6*T*vxi - axf*T*T + axi*T*T)/(2*pow(T,5));
     
+    // Pose y
+    coeffs(0,0) = yi;
+    coeffs(0,1) = vyi;
+    coeffs(0,2) = ayi/2;
+    coeffs(0,3) = -(20*yi - 20*yf + 8*T*vyf + 12*T*vyi - ayf*T*T + 3*ayi*T*T)/(2*pow(T,3));
+    coeffs(0,4) = (30*yi- 30*yf + 14*T*vyf + 16*T*vyi - 2*ayf*T*T + 3*ayi*T*T)/(2*pow(T,4));
+    coeffs(0,5) = -(12*yi-12*yf + 6*T*vyf + 6*T*vyi - ayf*T*T + ayi*T*T)/(2*pow(T,5));
+
+    // Velocity x
+    // Velocity in x
+    coeffs(2, 0) = coeffs(0, 1);
+    coeffs(2, 1) = 2 * coeffs(0, 2);
+    coeffs(2, 2) = 3 * coeffs(0, 3);
+    coeffs(2, 3) = 4 * coeffs(0, 4);
+    coeffs(2, 4) = 5 * coeffs(0, 5);
+    coeffs(2, 5) = 0;
+
+    // Velocity in y
+    coeffs(3, 0) = coeffs(1, 1);
+    coeffs(3, 1) = 2 * coeffs(1, 2);
+    coeffs(3, 2) = 3 * coeffs(1, 3);
+    coeffs(3, 3) = 4 * coeffs(1, 4);
+    coeffs(3, 4) = 5 * coeffs(1, 5);
+    coeffs(3, 5) = 0;
 
     return coeffs;
 }
 
-MatrixXd LocalPLanner::getEvasiveTrajectory(VehicleState _ego_state, double y_final)
+MatrixXd LocalPLanner::generateLocalPlan()
 {
-    MatrixXd coeffs = getPolynomialCoefficients(_ego_state,y_final);
+    MatrixXd coeffs = getPolynomialCoefficients();
 
     double dt = 1 / m_ctrl_freq;
-    int num_steps = (int)(getMaxPlanningTime(_ego_state) * m_ctrl_freq);
+    int num_steps = (int)(getMaxPlanningTime() * m_ctrl_freq);
     MatrixXd reference_trajectory(num_steps, 4);
     for (int i = 0; i < num_steps; i++) {
         VectorXd time_step(6, 1);
@@ -85,20 +117,5 @@ MatrixXd LocalPLanner::getEvasiveTrajectory(VehicleState _ego_state, double y_fi
         reference_trajectory.row(i) = tmp.transpose();
         dt = dt + 1/m_ctrl_freq;
     }
-    MatrixXd world_vel(3,num_steps);
-    for (int j=0; j<num_steps; j++)
-    {
-        world_vel.col(j)<<reference_trajectory(j,2),reference_trajectory(j,3),0;
-    }
-
-    MatrixXd homo_trans = homogenousTransWorldEgo(_ego_state);
-    // cout<<"world vel: "<<homo_trans.inverse()<<'\n'<<endl;
-    MatrixXd ego_vel = homo_trans.inverse()*world_vel;
-    for (int k=0;k<num_steps;k++)
-    {
-        reference_trajectory(k,2) = ego_vel(0,k);
-        reference_trajectory(k,3) = ego_vel(1,k);
-    }
-    // cout<<"traj: "<<reference_trajectory<<'\n'<<endl;
     return reference_trajectory;
 }

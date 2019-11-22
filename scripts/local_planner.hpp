@@ -45,6 +45,9 @@ public:
     // Define member functions
     double getCtrlFreq(); // Getter for control freq
     void setCtrlFreq(double new_ctrl_freq); // Setter for control freq
+    double LocalPLanner::getMaxPlanningTime(); // Get time of execution of trajectory
+    MatrixXd LocalPLanner::getPolynomialCoefficients(); // coeffs of polynomials
+    MatrixXd LocalPLanner::generateLocalPlan(); // create local plan
 };
 
 #endif
