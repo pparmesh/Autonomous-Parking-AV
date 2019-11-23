@@ -124,8 +124,8 @@ class GlobalPlanner
 
         void PrecomputeCost(vector<double> steerF, vector<double> steerB);
 
-        // double compute_H(Global_State st);
-        double computeH(Global_State st);
+        double computeEucH(Global_State st);
+        double compute2DH(Global_State st);
         
         vector<MotionPrimitive> transform_primitive(Global_State n_st);
 
@@ -144,6 +144,9 @@ class GlobalPlanner
         vector<Global_State> solutionPath(string goal);
         
         vector<Global_State> A_star(Global_State start_state, Global_State goal_state);
+
+        void print_path(vector <Global_State> path);
+    
 };
 
 class OccGrid
@@ -174,14 +177,13 @@ class OccGrid
         bool collision_check(MotionPrimitive pattern);
         
         vector<Global_State> get_parking_loc();
-        
+
 
 };
 #endif
 
 /*
 ToDo's:
-    - Add motion primitives of 2 step sizes.
     - Update state_hash to incorporate [x,y,theta], & not just [x,y]
     - Goal Region Define, (Check if Goal Reached)
     - Occupancy Grid
@@ -195,6 +197,7 @@ ToDo's:
     - Anytime D* 
 
 Completed:
+    - Add motion primitives of 2 step sizes.
     - A* Pseudo Code
     - Motion Primitive Precomputation
     - Motion Primitive Transformation

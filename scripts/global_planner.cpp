@@ -175,9 +175,19 @@ void GlobalPlanner::PrecomputeCost(vector<double> steerF, vector<double> steerB)
 }
 
 
-double GlobalPlanner::computeH(Global_State st)
+double GlobalPlanner::computeEucH(Global_State st)
 {
-    return 0.0;
+    // Euclidean between current state [x,y,theta] and the goal state [x,y,theta]
+    double h =sqrt((st.x-goal_state.x)*(st.x-goal_state.x) + (st.y-goal_state.y)*(st.y-goal_state.y) + (st.theta-goal_state.theta)*(st.theta-goal_state.theta));
+
+    return h;
+}
+
+double GlobalPlanner::compute2DH(Global_State st)
+{
+    // Using a 2D robot in xy world to compute the heurisics
+    
+    
 }
 
 vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
@@ -390,7 +400,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
                 continue;   // Skipping if the state is already in the closed list.
 
             double cost = cost_of_motion[mp_i];
-            hNew = computeH(q_new);
+            hNew = computeEucH(q_new);
             
             if(gmap.find(new_state) == gmap.end())
                 gmap[new_state] = GNode(q_new, curr_state, DBL_MAX, DBL_MAX, DBL_MAX);
@@ -410,9 +420,32 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
     if (closed_list[goal])
     {
         cout<<"Solution Found "<<endl;
-        return solutionPath(goal);
+        path = solutionPath(goal);
     }
     return path;
+}
+
+void print_path(vector<Global_State> path)
+{
+    vector<double> vx;
+    vector<double> vy;
+    vector<double>  vtheta;
+    for(int i=0;i<path.size();++i)
+    {
+        vx.push_back(path[i].x);
+        vy.push_back(path[i].y);
+        vtheta.push_back(path[i].theta);
+    }  
+    cout<<"X: \n";
+    for(double i : vx)
+        cout<<i<<",";
+    cout<<"\n Y: \n";
+    for(double i : vy)
+        cout<<i<<",";
+    cout<<"\n theta: \n";
+    for(double i : vtheta)
+        cout<<i<<",";
+    cout<<endl;
 }
 
 int main()
@@ -432,10 +465,12 @@ int main()
 
     GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car);
 
+    vector<Global_State> vehicle_path;
     // Prcomputing the motion primitives
     g_planner.generate_motion_primitives();
-    g_planner.A_star(startS, goalS);
+    vehicle_path = g_planner.A_star(startS, goalS);
 
     cout<<" Time taken for computation : "<<(double)(clock() - start_t)/CLOCKS_PER_SEC<<" s"<<endl;
+    print_path(vehicle_path);
     return 0;
 }   
