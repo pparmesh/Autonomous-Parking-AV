@@ -46,50 +46,31 @@ void GlobalPlanner::generate_motion_primitives()
     // Function to Precompute the set of motion primitives
     Global_State st_0 = start_state;
 
-    int nsteps = 8;
     int m=0;
+    int nsteps;
     // ------Motion Primitives in the forward direction--------------
+    
+    // Formulating a list of discretized steering angles
+    // Forward direction.............
     double f_Vx = 2;
     double x = st_0.x;
     double y = st_0.y;
     double theta = st_0.theta;
-    double d_delta = 0.08;  // steering angle discretization in radians
-    
-    // Formulating a list of discretized steering angles
+    double d_delta = 0.15;  // steering angle discretization in radians 
+   
     vector<double> deltaF;
     for(double d=-d_delta;d>=-max_steering_angle;d-=d_delta)
         deltaF.insert(deltaF.begin(),d);
     deltaF.push_back(0);
     for(double d = d_delta; d<= max_steering_angle;d += d_delta)
         deltaF.push_back(d);
-
-    for(double d_del : deltaF)
-    {
-        MotionPrimitive p;
-        p.insert_state(st_0);
-        primitive_M.col(m) << st_0.x, st_0.y, st_0.theta;
-        ++m;
-        for(int i = 0; i < nsteps; ++i)
-        {
-            x += f_Vx*cos(theta)*dt;
-            y += f_Vx*sin(theta)*dt;
-            theta += f_Vx*tan(d_del)*dt/car_length;
-            p.insert_state(Global_State(x, y, theta));
-            
-            //  Adding the motion primitives to the matrix
-            primitive_M.col(m) << x, y, theta;
-            ++m;
-            
-        }
-        motion_primitives.push_back(p);
-
-    }
-    // -----------------Motion Primimtives in the backward direction-------------
-    double b_Vx = 1.2;
+    
+    //  Backward direction..........
+        double b_Vx = 1.2;
     x = st_0.x;
     y = st_0.y;
     theta = st_0.theta;
-    d_delta = 0.1;
+    d_delta = 0.22;
 
     vector <double> deltaB;
     for(double d =-d_delta;d>=-max_steering_angle;d-=d_delta)
@@ -97,29 +78,65 @@ void GlobalPlanner::generate_motion_primitives()
     deltaB.push_back(0);
     for(double d=d_delta;d<= max_steering_angle; d+=d_delta)
         deltaB.push_back(d);
-    
-    for(double d_del :  deltaB)
-    {
-        MotionPrimitive p;
-        p.insert_state(st_0);
-        primitive_M.col(m) <<st_0.x, st_0.y, st_0.theta;
-        ++m;
-        for(int i=0; i<nsteps; i++)
-        {
-            x += b_Vx*cos(theta)*dt;
-            y += b_Vx*sin(theta)*dt;
-            theta += b_Vx*tan(d_del)*dt/car_length;
-            p.insert_state(Global_State(x, y, theta));
 
-            //  Adding the motion primitives to the matrix
-            primitive_M.col(m) << x ,y, theta;
+    // // Resizing the primitive_M Eigen matrix 
+    // primitive_M = MatrixXd(3, 400);// num_steps*(deltaF.size() + deltaB.size()));
+    
+    //  Computing and storing the motion primitives......... 
+    for(int jj=0;jj<2;++jj)
+    {
+        if(jj==0)
+            nsteps = num_stepsL-1;
+        else
+            nsteps = num_stepsS-1;
+        //  Defining motion primitives for 2 step sizes
+         
+        for(double d_del : deltaF)
+        {
+            MotionPrimitive p;
+            p.insert_state(st_0);
+            primitive_M.col(m) << st_0.x, st_0.y, st_0.theta;
             ++m;
+            for(int i = 0; i < nsteps; ++i)
+            {
+                x += f_Vx*cos(theta)*dt;
+                y += f_Vx*sin(theta)*dt;
+                theta += f_Vx*tan(d_del)*dt/car_length;
+                p.insert_state(Global_State(x, y, theta));
+                
+                //  Adding the motion primitives to the matrix
+                primitive_M.col(m) << x, y, theta;
+                ++m;
+                
+            }
+            motion_primitives.push_back(p);
+
         }
-        motion_primitives.push_back(p);
-    
-        // Precomputing the cost of each motion primitive
-    }
-    
+
+        // -----------------Motion Primimtives in the backward direction-------------
+
+        for(double d_del :  deltaB)
+        {
+            MotionPrimitive p;
+            p.insert_state(st_0);
+            primitive_M.col(m) <<st_0.x, st_0.y, st_0.theta;
+            ++m;
+            for(int i=0; i<nsteps; i++)
+            {
+                x += b_Vx*cos(theta)*dt;
+                y += b_Vx*sin(theta)*dt;
+                theta += b_Vx*tan(d_del)*dt/car_length;
+                p.insert_state(Global_State(x, y, theta));
+
+                //  Adding the motion primitives to the matrix
+                primitive_M.col(m) << x ,y, theta;
+                ++m;
+            }
+            motion_primitives.push_back(p);
+        
+            // Precomputing the cost of each motion primitive
+        }
+    }    
     PrecomputeCost(deltaF, deltaB);
 
     // //  Priniting the motion primitives and cost:::
@@ -137,20 +154,23 @@ void GlobalPlanner::PrecomputeCost(vector<double> steerF, vector<double> steerB)
 {
     // Function to pre-compute the cost for different motion patterns weighed on curvature, forward/reverse.
     double cost;
-    for(double delta : steerF)
+    for(int jj=0;jj<2;++jj)
     {
-        cost = abs(delta)*180/PI;
-        cost_of_motion.push_back(cost);   
-    }
+        for(double delta : steerF)
+        {
+            cost = abs(delta)*180/PI;
+            cost_of_motion.push_back(cost);   
+        }
 
-    // For Backward motion primitives---------------------
-    for(double delta : steerB)
-    {
-        if(delta == 0)
-            cost = 4;
-        else
-            cost = 4*abs(delta)*180/PI;     // Setting the cost of backward motion = 2*cost of forward with same steering angle
-        cost_of_motion.push_back(cost);
+        // For Backward motion primitives---------------------
+        for(double delta : steerB)
+        {
+            if(delta == 0)
+                cost = 4;
+            else
+                cost = 4*abs(delta)*180/PI;     // Setting the cost of backward motion = 2*cost of forward with same steering angle
+            cost_of_motion.push_back(cost);
+        }
     }
 }
 
@@ -166,26 +186,35 @@ vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
     double d_x = n_st.x - start_state.x;
     double d_y = n_st.y - start_state.y;
     double dtheta = n_st.theta - start_state.theta;
-
+    int num_steps;
     // Formulating the transformation matrix
     Matrix<double, 3, 3> M;
     M << cos(dtheta), -sin(dtheta), d_x,
         sin(dtheta), cos(dtheta), d_y,
         0, 0, 1;
-    Matrix<double, 3, num_steps*(28+23)> n_p = M*primitive_M;
+
+    Matrix<double, 3, (num_stepsL+num_stepsS)*(15+9)> n_p = M*primitive_M;
     
     // Converting the matrix to vector of motion primitives
     vector<MotionPrimitive> imap;
 
     MotionPrimitive p;
-    for(int i=0; i<n_p.cols();++i)
+    for(int jj=0;jj<2;++jj)
     {
-        p.insert_state(Global_State(n_p.col(i)[0], n_p.col(i)[1], n_p.col(i)[2]+dtheta));
-        if((i+1)%num_steps == 0)
+        if(jj==0)
+            num_steps = num_stepsL-1;
+        else
+            num_steps = num_stepsS-1;
+
+        for(int i=0; i<n_p.cols();++i)
         {
-            MotionPrimitive p_new(p);
-            imap.push_back(p_new);
-            p.clear_primitives();
+            p.insert_state(Global_State(n_p.col(i)[0], n_p.col(i)[1], n_p.col(i)[2]+dtheta));
+            if((i+1)%num_steps == 0)
+            {
+                MotionPrimitive p_new(p);
+                imap.push_back(p_new);
+                p.clear_primitives();
+            }
         }
     }
     return imap;
@@ -194,7 +223,7 @@ vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
 vector<int> GlobalPlanner::xy2i(Global_State state)
 {
     //Function to conver the parking lot spatial location to occupancy grid indices
-     
+    double dx = 0.1, dy = 0.1; 
     int ax = floor((state.x - xlim[0])/dx);
     int ay = floor((state.y - ylim[0])/dy);
     vector <int> pi {ax, ay};
@@ -396,10 +425,10 @@ int main()
 
     clock_t start_t = clock();
 
-    // Global_State startS = Global_State(-44.81,-31.04,PI/2);
-    // Global_State goalS = Global_State(-13.5, -31.27, PI/2);
-    Global_State startS = Global_State(-48, 11.4, 0);
-    Global_State goalS = Global_State(25, 11.4, 0);
+    Global_State startS = Global_State(-44.81,-31.04,PI/2);
+    Global_State goalS = Global_State(-13.5, -31.27, PI/2);
+    // Global_State startS = Global_State(-48, 11.4, 0);
+    // Global_State goalS = Global_State(26, 11.4, 0);
 
     GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car);
 

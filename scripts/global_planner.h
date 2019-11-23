@@ -9,7 +9,8 @@
 #include <set>
 #include <Eigen/Dense>
 
-#define num_steps 9
+#define num_stepsL 9
+#define num_stepsS 4
 #define PI 3.141592654
 #define mapX 920    // xlim [-62, 30]
 #define mapY 800    // ylim [-40,  40]
@@ -38,24 +39,6 @@ struct Global_State
         return (this->x==t.x && this->y==t.y && this->theta==t.theta);
     }
 };
-
-// struct f_COORDINATE
-// {
-//     double h;
-//     Global_State st;
-//     f_COORDINATE(): h(0), st()
-//     {}
-//     f_COORDINATE(double a, Global_State b): h(a), st(b)
-//     {}
-//     bool operator==(const f_COORDINATE& t) const
-//     {
-//         return (this->st == t.st);
-//     }
-//     bool operator<(const f_COORDINATE& t) const
-//     {
-//         return (this->h < t.h);
-//     }
-// };
 
 
 class MotionPrimitive
@@ -125,15 +108,13 @@ class GlobalPlanner
         vector<MotionPrimitive> motion_primitives;
 
         vector<double> cost_of_motion;
-
-        Matrix<double, 3, num_steps*(28+23)> primitive_M;
+        MatrixXd primitive_M= MatrixXd(3,(num_stepsL+num_stepsS)*(15+9)); //num_steps*(28+23)> primitive_M;
 
         unordered_map<string, GNode> gmap;
 
         vector<double> xlim {-62, 30};
         vector<double> ylim {-40, 40};
-        double dx = 0.1;
-        double dy = 0.1;
+
     
     public:
         GlobalPlanner(Global_State start_state, Global_State goal_state, double max_steering_angle, double dt,
@@ -164,10 +145,43 @@ class GlobalPlanner
         
         vector<Global_State> A_star(Global_State start_state, Global_State goal_state);
 };
+
+class OccGrid
+{
+    private:
+        double l = 5.142044059999996;   // Dimensions of each parking space
+        double w = 2.7572021484375;     // dimensions of each parking space
+        double xlim[2] = {-62, 30};
+        double ylim[2] = {-40, 40};
+        double dx = 0.1;
+        double dy = 0.1;
+        vector<vector<double>> occ_map;
+        vector<Global_State> parking_locations;
+
+    public:
+        OccGrid()
+        {
+            vector<double> map_row {0, mapY};
+            for(int i=0;i<mapX;++i)
+                occ_map.push_back(map_row);
+        
+        }
+
+        void update_occ(vector<Global_State> vehicles);
+
+        double check_occ(Global_State loc);
+
+        bool collision_check(MotionPrimitive pattern);
+        
+        vector<Global_State> get_parking_loc();
+        
+
+};
 #endif
 
 /*
 ToDo's:
+    - Add motion primitives of 2 step sizes.
     - Update state_hash to incorporate [x,y,theta], & not just [x,y]
     - Goal Region Define, (Check if Goal Reached)
     - Occupancy Grid

@@ -29,6 +29,10 @@ using namespace std;
 	// } 
 	// cout<<endl;
 
+	MatrixXd m(3,4);
+	m.resize(NoChange, 459);
+	cout << "m: " << m.rows() << " rows, " << m.cols() << " cols" << endl;
+
 	double a = 0;
 	string f = to_string(a);
 	cout<<f.substr(0, 4)<<endl;
