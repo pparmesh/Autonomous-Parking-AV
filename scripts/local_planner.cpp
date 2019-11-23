@@ -1,4 +1,5 @@
 
+// #include "local_waypoints.hpp"
 #include "local_planner.hpp"
 #include <eigen3/Eigen/Dense>
 #include <iostream>
@@ -9,28 +10,27 @@ using Eigen::VectorXd;
 using Eigen::Vector3d;
 using namespace std;
 
-// TODO: Need velocity information
 
-LocalPLanner::LocalPLanner(double ctrl_freq, Global_State node_start, Global_State node_end)
+LocalPlanner::LocalPlanner(double ctrl_freq, NodeState node_start, NodeState node_end)
 {
     m_ctrl_freq = ctrl_freq; // Controller frequency
     m_node_start = node_start;
     m_node_end = node_end;
 }
 // Define member functions
-double LocalPLanner::getCtrlFreq() { return m_ctrl_freq; } // Getter for control freq
+double LocalPlanner::getCtrlFreq() { return m_ctrl_freq; } // Getter for control freq
 
-void LocalPLanner::setCtrlFreq(double new_ctrl_freq) { m_ctrl_freq = new_ctrl_freq; } // Setter for control freq
+void LocalPlanner::setCtrlFreq(double new_ctrl_freq) { m_ctrl_freq = new_ctrl_freq; } // Setter for control freq
 
-double LocalPLanner::getMaxPlanningTime()
+double LocalPlanner::getMaxPlanningTime()
 {
-    double planning_time_x = abs(m_node_end.x - m_node_start.x)/m_node_start.vel_x;
-    double planning_time_y = abs(m_node_end.y - m_node_start.y)/m_node_start.vel_y;
+    double planning_time_x = abs(m_node_end.x - m_node_start.x)/m_node_start.vx;
+    double planning_time_y = abs(m_node_end.y - m_node_start.y)/m_node_start.vy;
     return max(planning_time_x,planning_time_y);
 }
 
-// Member function for generating evasive trajectory
-MatrixXd LocalPLanner::getPolynomialCoefficients()
+// Member function to get coeffs of polynomials for trajectory
+MatrixXd LocalPlanner::getPolynomialCoefficients()
 {
     // Boundary vals is [xi,yi,xf,yf,vxi,vyi,axi,ayi]
     // minimum jerk trajectory is a 5th order polynomial
@@ -44,12 +44,12 @@ MatrixXd LocalPLanner::getPolynomialCoefficients()
     double xf = m_node_end.x;
     double yf = m_node_end.y;
     
-    //Velocity
-    double vxi  = m_node_start.vel_x;
-    double vyi = m_node_start.vel_y;
+    //velocity
+    double vxi  = m_node_start.vx;
+    double vyi = m_node_start.vy;
 
-    double vxf = m_node_end.vel_x;
-    double vyf = m_node_end.vel_y;
+    double vxf = m_node_end.vx;
+    double vyf = m_node_end.vy;
 
     //Acceleration
     double axi  = m_node_start.acc_x;
@@ -76,15 +76,14 @@ MatrixXd LocalPLanner::getPolynomialCoefficients()
     coeffs(0,5) = -(12*xi-12*xf + 6*T*vxf + 6*T*vxi - axf*T*T + axi*T*T)/(2*pow(T,5));
     
     // Pose y
-    coeffs(0,0) = yi;
-    coeffs(0,1) = vyi;
-    coeffs(0,2) = ayi/2;
-    coeffs(0,3) = -(20*yi - 20*yf + 8*T*vyf + 12*T*vyi - ayf*T*T + 3*ayi*T*T)/(2*pow(T,3));
-    coeffs(0,4) = (30*yi- 30*yf + 14*T*vyf + 16*T*vyi - 2*ayf*T*T + 3*ayi*T*T)/(2*pow(T,4));
-    coeffs(0,5) = -(12*yi-12*yf + 6*T*vyf + 6*T*vyi - ayf*T*T + ayi*T*T)/(2*pow(T,5));
+    coeffs(1,0) = yi;
+    coeffs(1,1) = vyi;
+    coeffs(1,2) = ayi/2;
+    coeffs(1,3) = -(20*yi - 20*yf + 8*T*vyf + 12*T*vyi - ayf*T*T + 3*ayi*T*T)/(2*pow(T,3));
+    coeffs(1,4) = (30*yi- 30*yf + 14*T*vyf + 16*T*vyi - 2*ayf*T*T + 3*ayi*T*T)/(2*pow(T,4));
+    coeffs(1,5) = -(12*yi-12*yf + 6*T*vyf + 6*T*vyi - ayf*T*T + ayi*T*T)/(2*pow(T,5));
 
-    // Velocity x
-    // Velocity in x
+    // velocity in x
     coeffs(2, 0) = coeffs(0, 1);
     coeffs(2, 1) = 2 * coeffs(0, 2);
     coeffs(2, 2) = 3 * coeffs(0, 3);
@@ -92,7 +91,7 @@ MatrixXd LocalPLanner::getPolynomialCoefficients()
     coeffs(2, 4) = 5 * coeffs(0, 5);
     coeffs(2, 5) = 0;
 
-    // Velocity in y
+    // velocity in y
     coeffs(3, 0) = coeffs(1, 1);
     coeffs(3, 1) = 2 * coeffs(1, 2);
     coeffs(3, 2) = 3 * coeffs(1, 3);
@@ -102,8 +101,8 @@ MatrixXd LocalPLanner::getPolynomialCoefficients()
 
     return coeffs;
 }
-
-MatrixXd LocalPLanner::generateLocalPlan()
+// Member function to generate local trajectory waypoints
+MatrixXd LocalPlanner::generateLocalPlan()
 {
     MatrixXd coeffs = getPolynomialCoefficients();
 
@@ -118,4 +117,17 @@ MatrixXd LocalPLanner::generateLocalPlan()
         dt = dt + 1/m_ctrl_freq;
     }
     return reference_trajectory;
+}
+
+int main()
+{
+    int a = 1;
+    NodeState strt = {0,0,0,1,1,0,0,0};
+    // cout<<strt.x;
+    NodeState goal = {2,2,0,1,1,0,0,0};
+    LocalPlanner loc(5,strt,goal);
+    MatrixXd coef = loc.getPolynomialCoefficients();
+    MatrixXd ref = loc.generateLocalPlan();
+    cout<<ref;
+    return 0;
 }
