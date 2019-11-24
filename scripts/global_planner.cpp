@@ -183,11 +183,95 @@ double GlobalPlanner::computeEucH(Global_State st)
     return h;
 }
 
-double GlobalPlanner::compute2DH(Global_State st)
+string GlobalPlanner::stateHash2D(int sx, int sy)
+{
+    string stg = "";
+    stg += to_string(sx) + to_string(sy);
+
+    return stg;
+}
+
+double GlobalPlanner::compute2DH(Global_State st, OccGrid occupancy)
 {
     // Using a 2D robot in xy world to compute the heurisics
-    return 0.0;
+    unordered_map <string, bool> p_close;
+    set<f_COORDINATE> p_open;
+    int dirs = 8;
+    vector <int> startS = xy2i(st);
+    vector <int> goalS = xy2i(goal_state);
+
+    string startH = stateHash2D(startS[0], startS[1]);
+    string goalH = stateHash2D(goalS[0], goalS[1]);
+    p_close[startH] = false;
+    p_close[goalH] = false;
+
+    p_open.insert(make_pair(0.0, startH));
+
+    unordered_map<string, Node2D> imap;
+    imap[startH] = Node2D(st.x, st.y, "-1", 0);
+
+    p_open.insert(make_pair(0.0, startH));
+    int dX[dirs] = {-1, -1, -1, 0, 0, 1, 1, 1};
+    int dY[dirs] = {-1, 0, 1, -1, 1, -1, 0, 1};
+    int qx, qy;
+    while(!p_open.empty() && !p_close[goalH])
+    {
+        //  Popping the top node on the open list
+        f_COORDINATE q =*p_open.begin();
+        p_open.erase(p_open.begin());
+        qx = imap[q.second].xi;
+        qy = imap[q.second].yi;
+        
+        string qH = stateHash2D(qx, qy);
+        if(p_close.find(qH)!=p_close.end() && p_close[qH])
+            continue;       // skipping if the state already in closed list
+        
+        if(qH == goalH)
+        {
+            cout<<"goal reached"<<endl;
+            p_close[goalH]=true;
+            break;
+        }
+
+        for(int i=0; i<dirs;i++)
+        {
+            int newX = qx + dX[i];
+            int newY = qy + dY[i];
+            string q_newH = stateHash2D(newX, newY);
+
+            if(p_close[q_newH])
+                continue;   //skipping if q_new in closed list already
+
+            if(newX>=0 && newX<mapX && newY>=0 && newY<mapY)
+            {
+                if(!occupancy.isEmpty(newX, newY))
+                    continue;   // skipping if there is an obstacle at the (x,y) location
+                
+                if(imap.find(q_newH) == imap.end())
+                    imap[q_newH] = Node2D(newX, newY, qH, DBL_MAX);
+                
+                double gg = imap[qH].g +1;
+                if(imap[q_newH].g > gg)
+                {
+                    imap[q_newH] = Node2D(newX, newY, qH, gg);
+                    p_open.insert(make_pair(gg, q_newH));
+                }
+            }
+        }
+    }
     
+    if(!p_close[goalH])
+    {
+        cout<<" 2D heuristic could not find a path"<<endl;
+        return 0.0;
+    }
+    int h=0;
+    while(goalH != startH)
+    {
+        ++h;
+        goalH = imap[goalH].p;
+    }
+    return h;
 }
 
 vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
@@ -531,6 +615,12 @@ vector<int> OccGrid::xy2i(vector<double> xy)
     ind.push_back(floor((xy[2] - ylim[0])/dy));
     ind.push_back(ceil((xy[3] - ylim[1])/dy));
     return ind;
+}
+
+bool OccGrid::isEmpty(int xi, int yi)
+{
+    // returns 1 if the location (xi,yi) is empty; 0 otherwise.
+    return !occ_map[xi][yi];       
 }
 
 // -----------------------------------------------------------------------------------------------------------------------

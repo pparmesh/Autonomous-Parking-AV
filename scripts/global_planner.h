@@ -74,6 +74,71 @@ class MotionPrimitive
 };
 // --------_________________-------------______________-----------------______---
 
+class parking
+{
+    private:
+        vector<Global_State> parkX;
+        vector<int> isfull {1, 110};
+    public:
+        parking();
+        void emptylots(vector<int> lots);
+        vector<Global_State> get_locs();
+        Global_State get_loc(int j);
+        vector<int> parking_state();
+        bool isAvailable(int j);
+
+};
+
+// ----------_______________-------______________-----____________________-
+class OccGrid
+{
+    private:
+        double l = 5.142044059999996;   // Dimensions of each parking space
+        double w = 2.7572021484375;     // dimensions of each parking space
+        double xlim[2] = {-62, 30};
+        double ylim[2] = {-40, 40};
+        double dx = 0.1;
+        double dy = 0.1;
+        vector<vector<double>> occ_map;
+
+    public:
+        OccGrid()
+        {
+            vector<double> map_row {0, mapY};
+            for(int i=0;i<mapX;++i)
+                occ_map.push_back(map_row);
+        
+        }
+
+        void generate_static_occ(parking box);
+
+        // double check_occ(Global_State loc);
+
+        // bool collision_check(MotionPrimitive pattern);
+        
+
+        vector<double> pBoxlim(Global_State ploc);
+        
+        bool isEmpty(int xi, int yi);
+
+        vector<int> xy2i(vector<double> xy);
+        void update_static_occ(vector <int> veh_i);
+
+
+};
+// --------___________-------------___________------_______________----_____----
+
+struct Node2D
+{
+    int xi, yi;
+    string p;
+    double g;
+    Node2D(): xi(-1), yi(-1), p(""), g(DBL_MAX)
+    {}
+    Node2D(int a, int b, string par, double d): xi(a), yi(b), p(par), g(d)
+    {}
+};
+
 class GlobalPlanner
 {
     private:
@@ -126,7 +191,9 @@ class GlobalPlanner
         void PrecomputeCost(vector<double> steerF, vector<double> steerB);
 
         double computeEucH(Global_State st);
-        double compute2DH(Global_State st);
+        string stateHash2D(int sx, int sy);
+        
+        double compute2DH(Global_State st, OccGrid occupancy);
         
         vector<MotionPrimitive> transform_primitive(Global_State n_st);
 
@@ -149,60 +216,6 @@ class GlobalPlanner
         void print_path(vector <Global_State> path);
     
 };
-// -----------_________________-------__--______________--_______-----____________
-
-
-class parking
-{
-    private:
-        vector<Global_State> parkX;
-        vector<int> isfull {1, 110};
-    public:
-        parking();
-        void emptylots(vector<int> lots);
-        vector<Global_State> get_locs();
-        Global_State get_loc(int j);
-        vector<int> parking_state();
-        bool isAvailable(int j);
-
-};
-
-// ----------_______________-------______________-----____________________-
-class OccGrid
-{
-    private:
-        double l = 5.142044059999996;   // Dimensions of each parking space
-        double w = 2.7572021484375;     // dimensions of each parking space
-        double xlim[2] = {-62, 30};
-        double ylim[2] = {-40, 40};
-        double dx = 0.1;
-        double dy = 0.1;
-        vector<vector<double>> occ_map;
-
-    public:
-        OccGrid()
-        {
-            vector<double> map_row {0, mapY};
-            for(int i=0;i<mapX;++i)
-                occ_map.push_back(map_row);
-        
-        }
-
-        void generate_static_occ(parking box);
-
-        // double check_occ(Global_State loc);
-
-        // bool collision_check(MotionPrimitive pattern);
-        
-
-        vector<double> pBoxlim(Global_State ploc);
-
-        vector<int> xy2i(vector<double> xy);
-        void update_static_occ(vector <int> veh_i);
-
-
-};
-// --------___________-------------___________------_______________----_____----
 
 #endif
 
