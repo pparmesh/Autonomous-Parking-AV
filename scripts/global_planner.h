@@ -40,7 +40,7 @@ struct Global_State
     }
 };
 
-
+// ----------_________________----------------________________---------_____________---
 class MotionPrimitive
 {
     private:
@@ -72,6 +72,7 @@ class MotionPrimitive
         Global_State next_state();
 
 };
+// --------_________________-------------______________-----------------______---
 
 class GlobalPlanner
 {
@@ -148,7 +149,25 @@ class GlobalPlanner
         void print_path(vector <Global_State> path);
     
 };
+// -----------_________________-------__--______________--_______-----____________
 
+
+class parking
+{
+    private:
+        vector<Global_State> parkX;
+        vector<int> isfull {1, 110};
+    public:
+        parking();
+        void emptylots(vector<int> lots);
+        vector<Global_State> get_locs();
+        Global_State get_loc(int j);
+        vector<int> parking_state();
+        bool isAvailable(int j);
+
+};
+
+// ----------_______________-------______________-----____________________-
 class OccGrid
 {
     private:
@@ -159,7 +178,6 @@ class OccGrid
         double dx = 0.1;
         double dy = 0.1;
         vector<vector<double>> occ_map;
-        vector<Global_State> parking_locations;
 
     public:
         OccGrid()
@@ -170,21 +188,26 @@ class OccGrid
         
         }
 
-        void update_occ(vector<Global_State> vehicles);
+        void generate_static_occ(parking box);
 
-        double check_occ(Global_State loc);
+        // double check_occ(Global_State loc);
 
-        bool collision_check(MotionPrimitive pattern);
+        // bool collision_check(MotionPrimitive pattern);
         
-        vector<Global_State> get_parking_loc();
+
+        vector<double> pBoxlim(Global_State ploc);
+
+        vector<int> xy2i(vector<double> xy);
+        void update_static_occ(vector <int> veh_i);
 
 
 };
+// --------___________-------------___________------_______________----_____----
+
 #endif
 
 /*
 ToDo's:
-    - Update state_hash to incorporate [x,y,theta], & not just [x,y]
     - Goal Region Define, (Check if Goal Reached)
     - Occupancy Grid
     - Heuristic Computation (Preferably Pre-Compute)
@@ -203,5 +226,6 @@ Completed:
     - Motion Primitive Transformation
     - Cost Computation (Preferable Pre-Compute) -> forward and backward primitives weighed differently.
     - Preliminary Goal State check implemented
-
+    - Update state_hash to incorporate [x,y,theta], & not just [x,y]
+    - Added parking class 
 */

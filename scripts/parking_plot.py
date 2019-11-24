@@ -19,6 +19,7 @@ class Map():
 		self.spawn_points[:,1]=-self.spawn_points[:,1]
 		self.spawn_points[:,2]=-self.spawn_points[:,2]
 
+
 	def plot_parking(self):
 		w=self.w
 		l=self.l
@@ -77,6 +78,7 @@ class Map():
 				cp=20
 				# continue
 			ang = wrap2pi(abs(spts[i,2]*np.pi/180))
+			# ang = spts[i,2]*np.pi/180
 
 			pl_x = [spts[i,0]-(l/2)*np.cos(ang)-(w/2)*np.sin(ang),spts[i,0]+(l/2)*np.cos(ang)+(w/2)*np.sin(ang)]
 			pl_y = [spts[i,1]-(w/2)*np.cos(ang)-(l/2)*np.sin(ang), spts[i,1]+(w/2)*np.cos(ang)+(l/2)*np.sin(ang)]
