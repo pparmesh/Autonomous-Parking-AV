@@ -78,7 +78,7 @@ class parking
 {
     private:
         vector<Global_State> parkX;
-        vector<int> isfull {1, 110};
+        vector<int> isfull = vector<int> (110, 1);
     public:
         parking();
         void emptylots(vector<int> lots);
@@ -99,15 +99,12 @@ class OccGrid
         double ylim[2] = {-40, 40};
         double dx = 0.1;
         double dy = 0.1;
-        vector<vector<double>> occ_map;
+        vector<vector<int>> occ_map = vector<vector<int>> (mapX, vector<int> (mapY,0));
 
     public:
         OccGrid()
         {
-            vector<double> map_row {0, mapY};
-            for(int i=0;i<mapX;++i)
-                occ_map.push_back(map_row);
-        
+            
         }
 
         void generate_static_occ(parking box);
@@ -123,6 +120,7 @@ class OccGrid
 
         vector<int> xy2i(vector<double> xy);
         void update_static_occ(vector <int> veh_i);
+        vector<vector<int>> get_occmap();
 
 
 };
@@ -141,10 +139,11 @@ struct Node2D
 
 class GlobalPlanner
 {
-    private:
+    public:
         
         Global_State start_state;
         Global_State goal_state;
+
         struct GNode
         {
             Global_State state;
@@ -152,9 +151,10 @@ class GlobalPlanner
             double f;
             double g;
             double h;
-            GNode(): state(), parent(""), f(DBL_MAX), g(DBL_MAX), h(DBL_MAX)
+            MotionPrimitive ac;
+            GNode(): state(), parent(""), f(DBL_MAX), g(DBL_MAX), h(DBL_MAX), ac()
             {}
-            GNode(const Global_State& st, string p, double a, double b, double c): state(st), parent(p), f(a), g(b), h(c)
+            GNode(const Global_State& st, string p, double a, double b, double c, const MotionPrimitive& pat): state(st), parent(p), f(a), g(b), h(c), ac(pat)
             {}
             GNode(const GNode& pp)
             {
@@ -165,6 +165,7 @@ class GlobalPlanner
                 this->h = pp.h;
             }
         };
+        
         double max_steering_angle; // Max steering angle of vehicle
         double dt; // Time step for lattice graph
         double desired_velocity;
@@ -175,6 +176,7 @@ class GlobalPlanner
 
         vector<double> cost_of_motion;
         MatrixXd primitive_M= MatrixXd(3,(num_stepsL+num_stepsS)*(15+9)); //num_steps*(28+23)> primitive_M;
+        vector<double> thetas;
 
         unordered_map<string, GNode> gmap;
 
@@ -214,6 +216,8 @@ class GlobalPlanner
         vector<Global_State> A_star(Global_State start_state, Global_State goal_state);
 
         void print_path(vector <Global_State> path);
+
+        void print_primitives(vector<MotionPrimitive> mpd);
     
 };
 
