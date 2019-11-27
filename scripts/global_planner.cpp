@@ -66,7 +66,7 @@ void GlobalPlanner::generate_motion_primitives()
         deltaF.push_back(d);
     
     //  Backward direction..........
-    double b_Vx = 1.2;    
+    double b_Vx = -1.2;    
     d_delta = 0.22;
 
     vector <double> deltaB;
@@ -184,7 +184,7 @@ void GlobalPlanner::PrecomputeCost(vector<double> steerF, vector<double> steerB)
         for(double delta : steerB)
         {
             if(delta == 0)
-                cost = 2*nsteps;
+                cost = 4*nsteps;
             else
                 cost = nsteps*abs(delta)*180/PI;     // Setting the cost of backward motion = 2*cost of forward with same steering angle
             cost_of_motion.push_back(cost);
@@ -196,8 +196,8 @@ void GlobalPlanner::PrecomputeCost(vector<double> steerF, vector<double> steerB)
 double GlobalPlanner::computeEucH(Global_State st)
 {
     // Euclidean between current state [x,y,theta] and the goal state [x,y,theta]
-    double h =sqrt((st.x-goal_state.x)*(st.x-goal_state.x) + (st.y-goal_state.y)*(st.y-goal_state.y) + (st.theta-goal_state.theta)*(st.theta-goal_state.theta));
-
+    // double h =sqrt((st.x-goal_state.x)*(st.x-goal_state.x) + (st.y-goal_state.y)*(st.y-goal_state.y) + (st.theta-goal_state.theta)*(st.theta-goal_state.theta));
+    double h =0;
     return h;
 }
 
@@ -217,7 +217,6 @@ double GlobalPlanner::compute2DH(Global_State st, OccGrid occupancy)
     int dirs = 8;
     vector <int> startS = xy2i(st);
     vector <int> goalS = xy2i(goal_state);
-
     string startH = stateHash2D(startS[0], startS[1]);
     string goalH = stateHash2D(goalS[0], goalS[1]);
     p_close[startH] = false;
@@ -226,7 +225,7 @@ double GlobalPlanner::compute2DH(Global_State st, OccGrid occupancy)
     p_open.insert(make_pair(0.0, startH));
 
     unordered_map<string, Node2D> imap;
-    imap[startH] = Node2D(st.x, st.y, "-1", 0);
+    imap[startH] = Node2D(startS[0], startS[1], "-1", 0);
 
     p_open.insert(make_pair(0.0, startH));
     int dX[dirs] = {-1, -1, -1, 0, 0, 1, 1, 1};
@@ -239,19 +238,18 @@ double GlobalPlanner::compute2DH(Global_State st, OccGrid occupancy)
         p_open.erase(p_open.begin());
         qx = imap[q.second].xi;
         qy = imap[q.second].yi;
-        
         string qH = stateHash2D(qx, qy);
         if(p_close.find(qH)!=p_close.end() && p_close[qH])
             continue;       // skipping if the state already in closed list
         
         if(qH == goalH)
         {
-            cout<<"goal reached"<<endl;
+            // cout<<"goal reached"<<endl;
             p_close[goalH]=true;
             break;
         }
 
-        for(int i=0; i<dirs;i++)
+        for(int i=0; i<dirs;++i)
         {
             int newX = qx + dX[i];
             int newY = qy + dY[i];
@@ -263,8 +261,9 @@ double GlobalPlanner::compute2DH(Global_State st, OccGrid occupancy)
             if(newX>=0 && newX<mapX && newY>=0 && newY<mapY)
             {
                 if(!occupancy.isEmpty(newX, newY))
+                { 
                     continue;   // skipping if there is an obstacle at the (x,y) location
-                
+                }
                 if(imap.find(q_newH) == imap.end())
                     imap[q_newH] = Node2D(newX, newY, qH, DBL_MAX);
                 
@@ -290,7 +289,7 @@ double GlobalPlanner::compute2DH(Global_State st, OccGrid occupancy)
     //     goalH = imap[goalH].p;
     // }
     // return h;
-    return imap[startH].g;
+    return imap[goalH].g;
 }
 
 vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
@@ -317,7 +316,7 @@ vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
     int mi;
     for(mi=0;mi<(nsteps*(15+9));++mi)
     {
-        p.insert_state(Global_State(n_p.col(mi)[0], n_p.col(mi)[1], primitive_M.col(mi)[2]+dtheta));
+        p.insert_state(Global_State(n_p.col(mi)[0], n_p.col(mi)[1], thetas[mi]+dtheta));
         if((mi+1)%nsteps == 0)
         {
             MotionPrimitive p_new(p);
@@ -330,7 +329,7 @@ vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
     int li=1;
     for( ;mi <n_p.cols();++mi)
     {
-        p.insert_state(Global_State(n_p.col(mi)[0], n_p.col(mi)[1], primitive_M.col(mi)[2]+dtheta));
+        p.insert_state(Global_State(n_p.col(mi)[0], n_p.col(mi)[1], thetas[mi]+dtheta));
         if(li%nsteps == 0)
         {
             MotionPrimitive p_new(p);
@@ -339,25 +338,6 @@ vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
         }
         ++li;
     }
-
-    // for(int jj=0;jj<2;++jj)
-    // {
-    //     if(jj==0)
-    //         num_steps = num_stepsL-1;
-    //     else
-    //         num_steps = num_stepsS-1;
-
-    //     for(int i=0; i<n_p.cols();++i)
-    //     {
-    //         p.insert_state(Global_State(n_p.col(i)[0], n_p.col(i)[1], n_p.col(i)[2]+dtheta));
-    //         if((i+1)%num_steps == 0)
-    //         {
-    //             MotionPrimitive p_new(p);
-    //             imap.push_back(p_new);
-    //             p.clear_primitives();
-    //         }
-    //     }
-    // }
     return imap;
 }
 
@@ -394,9 +374,9 @@ bool GlobalPlanner::is_valid_primitive(MotionPrimitive motion)
     vector<Global_State> m_step = motion.get_primitive();
     //  Checking for out of bounds.......................
     
-    for(Global_State st : m_step)
+    for(Global_State stg : m_step)
     {
-        vector<int> ind = xy2i(st);
+        vector<int> ind = xy2i(stg);
         int x = ind[0];
         int y = ind[1];
         if(x<0 || x>=mapX || y<0 || y>=mapY)
@@ -432,16 +412,18 @@ vector<Global_State> GlobalPlanner::solutionPath(string goal)
         waypoints.insert(waypoints.begin(), gmap[curr_state].state);
         // Storing the waypoints from the motion primitive action that led to the current state
         vector<Global_State> actions = gmap[curr_state].ac.get_primitive();
-        for(int i = actions.size()-1;i>=0;--i)
-            waypoints.insert(waypoints.begin(), actions[i]);
-        curr_state = gmap[curr_state].parent;
         if(curr_state == "-1")
             break;
+        // Adding the waypoints from the motion primitive.........
+        for(int i = actions.size()-1;i>=0;--i)
+            waypoints.insert(waypoints.begin(), actions[i]);
+        
+        curr_state = gmap[curr_state].parent;
     }
     return waypoints;
 }
 
-vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_State goal_state)
+vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_State goal_state, OccGrid ocmap)
 {
     vector<Global_State> path;
 
@@ -478,8 +460,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
         // If they are not in closed list, find their f-values. If they are in the open list with a larger
         // f-value then update it, otherwise add this index to the open list. 
         // Loop till goal state has not been expanded.
-
-        if(mexp > 20000)
+        if(mexp > 30000)
             break;
         ++mexp;
         // Get index from openlist. Pop the first value from the open list.
@@ -511,7 +492,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
             gmap[goal].state = goal_state;
             break;
         }
-
+        // cout<<"open list size: "<<open_list.size()<<" "<<q_current.x<<" "<<q_current.y<<" "<<q_current.theta<<endl;
 
         // Pushing the state into current state
         closed_list[curr_state] = true; 
@@ -523,8 +504,11 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
             MotionPrimitive step = actions[mp_i];
             // Check if motion pattern is valid
             if(! is_valid_primitive(step))
+            {   
+                // Global_State sfg = step.next_state();
+                // cout<<"not valid: "<<sfg.x<<" ,"<<sfg.y<<endl;
                 continue;
-            
+            }
             if(! CollisionCheck(step))  // Checking for collision
                 continue;
             
@@ -539,14 +523,15 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
                 continue;   // Skipping if the state is already in the closed list.
 
             double cost = cost_of_motion[mp_i];
-            hNew = computeEucH(q_new);
+            // hNew = computeEucH(q_new);
+            hNew = compute2DH(q_new, ocmap);
             
             if(gmap.find(new_state) == gmap.end())
-                gmap[new_state] = GNode(q_new, curr_state, DBL_MAX, DBL_MAX, DBL_MAX, motion_primitives[0]);
+                gmap[new_state] = GNode(q_new, curr_state, DBL_MAX, DBL_MAX, DBL_MAX, step);
 
-            if(gmap[new_state].g > gmap[curr_state].g + cost)
+            if(gmap[new_state].g > (gmap[curr_state].g + cost))
             {
-                gNew = gmap[curr_state].g;
+                gNew = gmap[curr_state].g + cost;
                 fNew = gNew + hNew;
                 gmap[new_state] = GNode(q_new, curr_state, fNew, gNew, hNew, step);
                 open_list.insert(make_pair(fNew, new_state));
@@ -602,19 +587,19 @@ void OccGrid::generate_static_occ(parking box)
         vector<double> pl_xy = pBoxlim(v_loc[i]); 
         vector<int> obstacles = xy2i(pl_xy);
         // cout<<"("<<obstacles[0]<<","<<obstacles[2]<<"); ("<<obstacles[1]<<","<<obstacles[3]<<") \n";
-        update_static_occ(obstacles);
+        update_static_occ(obstacles, 1);
     }
 
 }
 
-void OccGrid::update_static_occ(vector<int> veh_i)
+void OccGrid::update_static_occ(vector<int> veh_i, int full)
 {
     //  Function to update the occupancy grid values for the indices in vehXY
     // limits: (veh_i[0], vehh_i[2]) ; (veh_i[1], veh_h[3])
     for(int m=veh_i[0]; m<=veh_i[2]; ++m)
     {
         for(int n=veh_i[1]; n<=veh_i[3]; ++n)
-            occ_map[m][n] = 1;
+            occ_map[m][n] = full;
     }
 
 }
@@ -826,9 +811,9 @@ int main()
     clock_t start_t = clock();
 
     // Global_State startS = Global_State(-44.81,-31.04,PI/2);
-    // Global_State goalS = Global_State(-13.5, -31.04, PI/2);
-    Global_State startS = Global_State(-48, 11.4, 0);
-    Global_State goalS = Global_State(26, 11.4, 0);
+    // Global_State goalS = Global_State(-13.5, -31.04, PI);
+    Global_State startS = Global_State(-5, 15, 0);
+    Global_State goalS = Global_State(15, 15, 0);   //0.40,-31.27,0);
 
     GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car);
 
@@ -840,10 +825,13 @@ int main()
     // instantanting the occupance grid...........
     OccGrid occ;
     occ.generate_static_occ(parkV);
-    vehicle_path = g_planner.A_star(startS, goalS);
-    
 
-
+    // g_planner.print_primitives(g_planner.motion_primitives);
+    // vector <MotionPrimitive> pp = g_planner.transform_primitive(goalS);
+    // cout<<"+++\n+++++++++\n+++++++++"<<endl;
+    // g_planner.print_primitives(pp);
+    // Searching for path to the goal...................................... 
+    vehicle_path = g_planner.A_star(startS, goalS ,occ);
     cout<<" Time taken for computation : "<<(double)(clock() - start_t)/CLOCKS_PER_SEC<<" s"<<endl;
     print_path(vehicle_path);
     return 0;

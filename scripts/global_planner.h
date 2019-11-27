@@ -119,7 +119,7 @@ class OccGrid
         bool isEmpty(int xi, int yi);
 
         vector<int> xy2i(vector<double> xy);
-        void update_static_occ(vector <int> veh_i);
+        void update_static_occ(vector <int> veh_i, int full = 0);
         vector<vector<int>> get_occmap();
 
 
@@ -213,7 +213,7 @@ class GlobalPlanner
         
         vector<Global_State> solutionPath(string goal);
         
-        vector<Global_State> A_star(Global_State start_state, Global_State goal_state);
+        vector<Global_State> A_star(Global_State start_state, Global_State goal_state, OccGrid ocmap);
 
         void print_path(vector <Global_State> path);
 

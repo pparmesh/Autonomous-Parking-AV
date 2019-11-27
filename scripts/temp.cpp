@@ -41,5 +41,6 @@ using namespace std;
 	int ss = 9;
 	vector<vector<int>> p (ss,vector<int> (ss,0));
 	cout<<p.size()<<"-"<< p[0].size()<<endl;
+	cout<<(2 > 1 + 3)<<endl; 
  	return 0;
  }
