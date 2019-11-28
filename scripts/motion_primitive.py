@@ -66,18 +66,20 @@ class motion():
 		"""
 		Function to translate and rotate the motion pattern by theta
 		"""
-		dx = st2[0] - self.x0
-		dy = st2[1] - self.y0
+		# dx = st2[0] - self.x0
+		# dy = st2[1] - self.y0
 		dtheta = st2[2] - self.theta0
-		transformT = np.array([[cos(dtheta), -sin(dtheta), dx],[sin(dtheta), cos(dtheta), dy],[0,0,1]])
+		transformT = np.array([[cos(dtheta), -sin(dtheta), self.x0],[sin(dtheta), cos(dtheta), self.y0],[0,0,1]])
 		n_p = []
 		p0 = self.motion_primitives
 		for i in range(len(p0)):
 			p0_i = p0[i]
-			xyp = np.hstack((p0_i[:,:2], np.ones(p0_i.shape[0]).reshape(-1,1))).T
+			xyp = np.hstack((p0_i[:,0].reshape(-1,1)-self.x0, p0_i[:,1].reshape(-1,1)-self.y0, np.ones(p0_i.shape[0]).reshape(-1,1))).T
+			# xyp = np.hstack((p0_i[:,:2], np.ones(p0_i.shape[0]).reshape(-1,1))).T
 			n_xyp = np.dot(transformT, xyp)
 			n_theta = p0_i[:,-1]+dtheta
-			p2 = np.hstack((n_xyp[:2, :].T, n_theta.reshape(-1,1)))
+			nn_xyp = np.vstack((n_xyp[0,:].reshape(1,-1)+st2[0]-self.x0, n_xyp[1,:].reshape(1,-1)+st2[1]-self.y0))
+			p2 = np.hstack((nn_xyp.T, n_theta.reshape(-1,1)))
 			n_p.append(p2)
 		return n_p
 
@@ -106,12 +108,12 @@ class motion():
 
 
 if __name__ == '__main__':
-	mp = motion()
+	mp = motion(15,15,np.pi/2)
 	mp.generate_motion_patters()
 	motion_patterns = mp.motion_primitives
-	mp.plot_motion_patterns(motion_patterns, [0,0,0])
+	mp.plot_motion_patterns(motion_patterns, [15,15,np.pi/2], 'red')
 
-	st2=[3,3, 3*np.pi/4]
+	st2=[8,8, np.pi/4]
 	pattern2 = mp.rotate_pattern(st2)
 	mp.plot_motion_patterns(pattern2, st2, 'green')
 	plt.show()

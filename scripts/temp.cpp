@@ -1,6 +1,9 @@
 #include <iostream>
 #include <bits/stdc++.h>
 #include <Eigen/Dense>
+#include <math.h>
+
+#define PI 3.141592654
 
 using namespace Eigen;
 using namespace std;
@@ -41,6 +44,9 @@ using namespace std;
 	int ss = 9;
 	vector<vector<int>> p (ss,vector<int> (ss,0));
 	cout<<p.size()<<"-"<< p[0].size()<<endl;
-	cout<<(2 > 1 + 3)<<endl; 
+
+	cout<<cos(PI/2)<<" "<<cos(PI)<<" "<<cos(3*PI/2)<<endl;
+	cout<<sin(PI/2)<<" "<<sin(PI)<<" "<<sin(3*PI/2)<<endl;
+
  	return 0;
  }

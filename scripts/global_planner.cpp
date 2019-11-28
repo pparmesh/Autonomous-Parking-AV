@@ -800,6 +800,45 @@ void GlobalPlanner::print_primitives(vector<MotionPrimitive> mpd)
 }
 
 
+void GlobalPlanner::motion_primitive_writer(vector<MotionPrimitive> mpd, string file_name)
+{
+    // Converting the vector of MotionPrimitives into a 2d Vector.
+    vector< vector<double>> pmap (9, vector<double> {0});
+    for(MotionPrimitive m : mpd)
+    {
+        vector<Global_State> mj = m.get_primitive();
+        if (mj.size() < 8)
+            continue;       // ignoring the motion primitives with the 8 steps curently
+        for(int e=0;e<mj.size();++e)
+        {
+            pmap[e].push_back(mj[e].x);
+            pmap[e].push_back(mj[e].y);
+            pmap[e].push_back(mj[e].theta);
+        }
+    }
+
+    // Writing the motion primitive 2d vector to a csv file
+    ofstream ffr (file_name);
+    for(int p =0;p<pmap.size();++p)
+    {
+        for(int q=1;q<pmap[p].size();++q)
+            ffr<<pmap[p][q]<<", ";
+        ffr<<endl;
+    }
+    ffr.close();    
+
+}
+
+vector<MotionPrimitive> GlobalPlanner::startS_primitives()
+{
+    return motion_primitives;
+}
+
+// -------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------
+
 int main()
 {
     double dx = 0.1 ,dy = 0.1;  // Grid discretization 
@@ -810,10 +849,10 @@ int main()
 
     clock_t start_t = clock();
 
-    // Global_State startS = Global_State(-44.81,-31.04,PI/2);
-    // Global_State goalS = Global_State(-13.5, -31.04, PI);
-    Global_State startS = Global_State(-5, 15, 0);
-    Global_State goalS = Global_State(15, 15, 0);   //0.40,-31.27,0);
+    Global_State startS = Global_State(-44.81,-31.04,0);
+    Global_State goalS = Global_State(-13.5, -31.04, PI);
+    // Global_State startS = Global_State(-5, 15, 0);
+    // Global_State goalS = Global_State(15, 15, 0);   //0.40,-31.27,0);
 
     GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car);
 
@@ -826,13 +865,18 @@ int main()
     OccGrid occ;
     occ.generate_static_occ(parkV);
 
-    // g_planner.print_primitives(g_planner.motion_primitives);
-    // vector <MotionPrimitive> pp = g_planner.transform_primitive(goalS);
-    // cout<<"+++\n+++++++++\n+++++++++"<<endl;
-    // g_planner.print_primitives(pp);
+    g_planner.motion_primitive_writer(g_planner.startS_primitives(), "startS.csv");
+    vector <MotionPrimitive> pp = g_planner.transform_primitive(goalS);
+    cout<<"+++\n+++++++++\n+++++++++"<<endl;
+    g_planner.motion_primitive_writer(pp, "goalS.csv");
+    
+    g_planner.print_primitives(pp);
+
     // Searching for path to the goal...................................... 
-    vehicle_path = g_planner.A_star(startS, goalS ,occ);
+    // vehicle_path = g_planner.A_star(startS, goalS ,occ);
+    // print_path(vehicle_path);
+    
     cout<<" Time taken for computation : "<<(double)(clock() - start_t)/CLOCKS_PER_SEC<<" s"<<endl;
-    print_path(vehicle_path);
+    
     return 0;
 }   

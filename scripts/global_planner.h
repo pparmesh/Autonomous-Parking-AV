@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <set>
 #include <Eigen/Dense>
+#include <fstream>
 
 #define num_stepsL 9
 #define num_stepsS 4
@@ -119,7 +120,7 @@ class OccGrid
         bool isEmpty(int xi, int yi);
 
         vector<int> xy2i(vector<double> xy);
-        void update_static_occ(vector <int> veh_i, int full = 0);
+        void update_static_occ(vector <int> veh_i, int full);
         vector<vector<int>> get_occmap();
 
 
@@ -139,7 +140,7 @@ struct Node2D
 
 class GlobalPlanner
 {
-    public:
+    private:
         
         Global_State start_state;
         Global_State goal_state;
@@ -218,6 +219,11 @@ class GlobalPlanner
         void print_path(vector <Global_State> path);
 
         void print_primitives(vector<MotionPrimitive> mpd);
+
+        void motion_primitive_writer(vector <MotionPrimitive> mpd, string file_name);
+
+        vector<MotionPrimitive> startS_primitives();
+        
     
 };
 
