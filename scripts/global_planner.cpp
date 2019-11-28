@@ -55,6 +55,8 @@ void GlobalPlanner::generate_motion_primitives()
     double f_Vx = 2;
     double x = st_0.x;
     double y = st_0.y;
+    double x0 = st_0.x;
+    double y0 = st_0.y;
     double theta = st_0.theta;
     double d_delta = 0.15;  // steering angle discretization in radians 
    
@@ -96,7 +98,7 @@ void GlobalPlanner::generate_motion_primitives()
             y = st_0.y;
             theta = st_0.theta;
             p.insert_state(st_0);
-            primitive_M.col(m) << x, y, 1;  //theta;
+            primitive_M.col(m) << x-x0, y-y0, 1.0;  //theta;
             thetas.push_back(theta);
             ++m;
             for(int i = 0; i < nsteps; ++i)
@@ -107,7 +109,7 @@ void GlobalPlanner::generate_motion_primitives()
                 p.insert_state(Global_State(x, y, theta));
                 
                 //  Adding the motion primitives to the matrix
-                primitive_M.col(m) << x, y, 1;  //theta;
+                primitive_M.col(m) << x-x0, y-y0, 1.0;  //theta;
                 thetas.push_back(theta);
                 ++m;
                 
@@ -125,7 +127,7 @@ void GlobalPlanner::generate_motion_primitives()
             y = st_0.y;
             theta = st_0.theta;
             p.insert_state(st_0);
-            primitive_M.col(m) <<x, y, 1; //theta;
+            primitive_M.col(m) <<x-x0, y-y0, 1.0; //theta;
             thetas.push_back(theta);
             ++m;
             for(int i=0; i<nsteps; i++)
@@ -136,7 +138,7 @@ void GlobalPlanner::generate_motion_primitives()
                 p.insert_state(Global_State(x, y, theta));
 
                 //  Adding the motion primitives to the matrix
-                primitive_M.col(m) << x ,y, 1;  //theta;
+                primitive_M.col(m) << x-x0 ,y-y0, 1.0;  //theta;
                 thetas.push_back(theta);
                 ++m;
             }
@@ -294,17 +296,18 @@ double GlobalPlanner::compute2DH(Global_State st, OccGrid occupancy)
 
 vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
 {
-    // Function to transform (tranlate and rotate) the initial motion primitives to the current vehicle state
-    double d_x = n_st.x - start_state.x;
-    double d_y = n_st.y - start_state.y;
+    // Computing the relative transformation (rotation and translation) between the two motion primitive frames.
+    double dx = n_st.x - start_state.x;
+    double dy = n_st.y - start_state.y;
     double dtheta = n_st.theta - start_state.theta;
-    int num_steps;
+
     // Formulating the transformation matrix
     Matrix<double, 3, 3> M;
-    M << cos(dtheta), -sin(dtheta), d_x,
-        sin(dtheta), cos(dtheta), d_y,
-        0, 0, 1;
+    M << cos(dtheta), -sin(dtheta), start_state.x,
+        sin(dtheta), cos(dtheta), start_state.y,
+        0, 0, 1; 
 
+    // Transforming the frame of reference of the motion primitives
     Matrix<double, 3, (num_stepsL+num_stepsS)*(15+9)> n_p = M*primitive_M;
     
     // Converting the matrix to vector of motion primitives
@@ -316,7 +319,7 @@ vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
     int mi;
     for(mi=0;mi<(nsteps*(15+9));++mi)
     {
-        p.insert_state(Global_State(n_p.col(mi)[0], n_p.col(mi)[1], thetas[mi]+dtheta));
+        p.insert_state(Global_State(n_p.col(mi)[0]+dx, n_p.col(mi)[1]+dy, thetas[mi]+dtheta));
         if((mi+1)%nsteps == 0)
         {
             MotionPrimitive p_new(p);
@@ -329,7 +332,7 @@ vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
     int li=1;
     for( ;mi <n_p.cols();++mi)
     {
-        p.insert_state(Global_State(n_p.col(mi)[0], n_p.col(mi)[1], thetas[mi]+dtheta));
+        p.insert_state(Global_State(n_p.col(mi)[0]+dx, n_p.col(mi)[1]+dy, thetas[mi]+dtheta));
         if(li%nsteps == 0)
         {
             MotionPrimitive p_new(p);
@@ -412,13 +415,15 @@ vector<Global_State> GlobalPlanner::solutionPath(string goal)
         waypoints.insert(waypoints.begin(), gmap[curr_state].state);
         // Storing the waypoints from the motion primitive action that led to the current state
         vector<Global_State> actions = gmap[curr_state].ac.get_primitive();
-        if(curr_state == "-1")
+        if(gmap[curr_state].parent == "-1")
             break;
+        else
+            curr_state = gmap[curr_state].parent;
+
         // Adding the waypoints from the motion primitive.........
         for(int i = actions.size()-1;i>=0;--i)
             waypoints.insert(waypoints.begin(), actions[i]);
         
-        curr_state = gmap[curr_state].parent;
     }
     return waypoints;
 }
@@ -549,29 +554,53 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
     return path;
 }
 
-void print_path(vector<Global_State> path)
+void GlobalPlanner::print_primitives(vector<MotionPrimitive> mpd)
 {
-    vector<double> vx;
-    vector<double> vy;
-    vector<double>  vtheta;
-    for(int i=0;i<path.size();++i)
+    for(int i=0;i< mpd.size(); ++i)
     {
-        vx.push_back(path[i].x);
-        vy.push_back(path[i].y);
-        vtheta.push_back(path[i].theta);
-    }  
-    cout<<"X: \n";
-    for(double i : vx)
-        cout<<i<<",";
-    cout<<"\n Y: \n";
-    for(double i : vy)
-        cout<<i<<",";
-    cout<<"\n theta: \n";
-    for(double i : vtheta)
-        cout<<i<<",";
-    cout<<endl;
+        MotionPrimitive j=mpd[i];
+        cout<<"------------------------------\n";
+        vector<Global_State> jp = j.get_primitive();
+        for(Global_State o : jp)
+            cout<<"["<<o.x<<","<<o.y<<","<<o.theta<<"],"<<endl;
+        cout<<" Cost= "<<cost_of_motion[i]<<endl;
+    }
 }
 
+
+void GlobalPlanner::motion_primitive_writer(vector<MotionPrimitive> mpd, string file_name)
+{
+    // Converting the vector of MotionPrimitives into a 2d Vector.
+    vector< vector<double>> pmap (9, vector<double> {0});
+    for(MotionPrimitive m : mpd)
+    {
+        vector<Global_State> mj = m.get_primitive();
+        if (mj.size() < 8)
+            continue;       // ignoring the motion primitives with the 8 steps curently
+        for(int e=0;e<mj.size();++e)
+        {
+            pmap[e].push_back(mj[e].x);
+            pmap[e].push_back(mj[e].y);
+            pmap[e].push_back(mj[e].theta);
+        }
+    }
+
+    // Writing the motion primitive 2d vector to a csv file
+    ofstream ffr (file_name);
+    for(int p =0;p<pmap.size();++p)
+    {
+        for(int q=1;q<pmap[p].size();++q)
+            ffr<<pmap[p][q]<<", ";
+        ffr<<endl;
+    }
+    ffr.close();    
+
+}
+
+vector<MotionPrimitive> GlobalPlanner::startS_primitives()
+{
+    return motion_primitives;
+}
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------
 void OccGrid::generate_static_occ(parking box)
@@ -786,52 +815,28 @@ bool parking::isAvailable(int j)
 }
 
 // ------------------------------------------------------------------------------------------------
-void GlobalPlanner::print_primitives(vector<MotionPrimitive> mpd)
+
+void print_path(vector<Global_State> path)
 {
-    for(int i=0;i< mpd.size(); ++i)
+    vector<double> vx;
+    vector<double> vy;
+    vector<double>  vtheta;
+    for(int i=0;i<path.size();++i)
     {
-        MotionPrimitive j=mpd[i];
-        cout<<"------------------------------\n";
-        vector<Global_State> jp = j.get_primitive();
-        for(Global_State o : jp)
-            cout<<"["<<o.x<<","<<o.y<<","<<o.theta<<"],"<<endl;
-        cout<<" Cost= "<<cost_of_motion[i]<<endl;
-    }
-}
-
-
-void GlobalPlanner::motion_primitive_writer(vector<MotionPrimitive> mpd, string file_name)
-{
-    // Converting the vector of MotionPrimitives into a 2d Vector.
-    vector< vector<double>> pmap (9, vector<double> {0});
-    for(MotionPrimitive m : mpd)
-    {
-        vector<Global_State> mj = m.get_primitive();
-        if (mj.size() < 8)
-            continue;       // ignoring the motion primitives with the 8 steps curently
-        for(int e=0;e<mj.size();++e)
-        {
-            pmap[e].push_back(mj[e].x);
-            pmap[e].push_back(mj[e].y);
-            pmap[e].push_back(mj[e].theta);
-        }
-    }
-
-    // Writing the motion primitive 2d vector to a csv file
-    ofstream ffr (file_name);
-    for(int p =0;p<pmap.size();++p)
-    {
-        for(int q=1;q<pmap[p].size();++q)
-            ffr<<pmap[p][q]<<", ";
-        ffr<<endl;
-    }
-    ffr.close();    
-
-}
-
-vector<MotionPrimitive> GlobalPlanner::startS_primitives()
-{
-    return motion_primitives;
+        vx.push_back(path[i].x);
+        vy.push_back(path[i].y);
+        vtheta.push_back(path[i].theta);
+    }  
+    cout<<"X: \n";
+    for(double i : vx)
+        cout<<i<<",";
+    cout<<"\n Y: \n";
+    for(double i : vy)
+        cout<<i<<",";
+    cout<<"\n theta: \n";
+    for(double i : vtheta)
+        cout<<i<<",";
+    cout<<endl;
 }
 
 // -------------------------------------------------------------------------------------------------------------
@@ -849,10 +854,11 @@ int main()
 
     clock_t start_t = clock();
 
-    Global_State startS = Global_State(-44.81,-31.04,0);
-    Global_State goalS = Global_State(-13.5, -31.04, PI);
-    // Global_State startS = Global_State(-5, 15, 0);
+    // Global_State startS = Global_State(-44.81,-31.04,PI/4);
+    // Global_State goalS = Global_State(-13.5, -31.04, 3*PI/4);
+    Global_State startS = Global_State(-5, 15, 0);
     // Global_State goalS = Global_State(15, 15, 0);   //0.40,-31.27,0);
+    Global_State goalS = Global_State(-54.12901306152344,-2.4843921661376953,0);
 
     GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car);
 
@@ -864,17 +870,18 @@ int main()
     // instantanting the occupance grid...........
     OccGrid occ;
     occ.generate_static_occ(parkV);
+    occ.update_static_occ({44}, 0); // Setting parking lot as empty
 
-    g_planner.motion_primitive_writer(g_planner.startS_primitives(), "startS.csv");
-    vector <MotionPrimitive> pp = g_planner.transform_primitive(goalS);
-    cout<<"+++\n+++++++++\n+++++++++"<<endl;
-    g_planner.motion_primitive_writer(pp, "goalS.csv");
+    // g_planner.motion_primitive_writer(g_planner.startS_primitives(), "startS.csv");
+    // vector <MotionPrimitive> pp = g_planner.transform_primitive(goalS);
+    // cout<<"+++\n+++++++++\n+++++++++"<<endl;
+    // g_planner.motion_primitive_writer(pp, "goalS.csv");
     
-    g_planner.print_primitives(pp);
+    // g_planner.print_primitives(pp);
 
     // Searching for path to the goal...................................... 
-    // vehicle_path = g_planner.A_star(startS, goalS ,occ);
-    // print_path(vehicle_path);
+    vehicle_path = g_planner.A_star(startS, goalS ,occ);
+    print_path(vehicle_path);
     
     cout<<" Time taken for computation : "<<(double)(clock() - start_t)/CLOCKS_PER_SEC<<" s"<<endl;
     
