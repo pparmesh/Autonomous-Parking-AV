@@ -497,7 +497,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
             gmap[goal].state = goal_state;
             break;
         }
-        // cout<<"open list size: "<<open_list.size()<<" "<<q_current.x<<" "<<q_current.y<<" "<<q_current.theta<<endl;
+        cout<<"open list size: "<<open_list.size()<<" "<<q_current.x<<" "<<q_current.y<<" "<<q_current.theta<<endl;
 
         // Pushing the state into current state
         closed_list[curr_state] = true; 
@@ -856,7 +856,7 @@ int main()
 
     // Global_State startS = Global_State(-44.81,-31.04,PI/4);
     // Global_State goalS = Global_State(-13.5, -31.04, 3*PI/4);
-    Global_State startS = Global_State(-5, 15, 0);
+    Global_State startS = Global_State(-30, 15, 0);
     // Global_State goalS = Global_State(15, 15, 0);   //0.40,-31.27,0);
     Global_State goalS = Global_State(-54.12901306152344,-2.4843921661376953,0);
 
