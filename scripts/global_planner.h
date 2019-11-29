@@ -11,10 +11,10 @@
 #include <fstream>
 
 #define num_stepsL 9
-#define num_stepsS 4
+#define num_stepsS 0
 #define PI 3.141592654
-#define mapX 920    // xlim [-62, 30]
-#define mapY 800    // ylim [-40,  40]
+#define mapX 460    // xlim [-62, 30]
+#define mapY 400    // ylim [-40,  40]
 
 using namespace std;
 using namespace Eigen;
@@ -98,14 +98,15 @@ class OccGrid
         double w = 2.7572021484375;     // dimensions of each parking space
         double xlim[2] = {-62, 30};
         double ylim[2] = {-40, 40};
-        double dx = 0.1;
-        double dy = 0.1;
+        double dx = 0.2;
+        double dy = 0.2;
         vector<vector<int>> occ_map = vector<vector<int>> (mapX, vector<int> (mapY,0));
 
     public:
-        OccGrid()
+        OccGrid(double ddx, double ddy)
         {
-            
+            dx = ddx;
+            dy = ddy;
         }
 
         void generate_static_occ(parking box);
@@ -183,11 +184,13 @@ class GlobalPlanner
 
         vector<double> xlim {-62, 30};
         vector<double> ylim {-40, 40};
+        double dx = 0.2;
+        double dy = 0.2;
 
     
     public:
         GlobalPlanner(Global_State start_state, Global_State goal_state, double max_steering_angle, double dt,
-         double desire_vel, double car_length);
+         double desire_vel, double car_length, double ddx, double ddy);
 
         void generate_motion_primitives();
 
@@ -223,7 +226,7 @@ class GlobalPlanner
         void motion_primitive_writer(vector <MotionPrimitive> mpd, string file_name);
 
         vector<MotionPrimitive> startS_primitives();
-        
+
     
 };
 

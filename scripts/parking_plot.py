@@ -48,7 +48,7 @@ class Map():
 		by = ceil((py[1]-self.ylim[0])/self.dy)
 		return np.meshgrid(np.arange(ax,bx+1), np.arange(ay,by+1))
 
-	def occupancy_grid(self, dx=0.1, dy=0.1):
+	def occupancy_grid(self, dx=0.2, dy=0.2):
 		"""
 		Function to compute the obstacle grid from the queried spawn_points.
 		Spawn Points queried from the Carla Map "Parking1"

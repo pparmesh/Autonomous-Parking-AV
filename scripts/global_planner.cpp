@@ -31,7 +31,7 @@ Global_State MotionPrimitive::next_state()
 // -----------------------------------------------------------------------------------------------------------------------------------------
 
 GlobalPlanner::GlobalPlanner(Global_State st_state, Global_State g_state, double max_str_angle, double delt,
-double desire_vel, double car_len)
+double desire_vel, double car_len, double ddx, double ddy)
 {
     start_state = st_state;
     goal_state = g_state;
@@ -39,6 +39,8 @@ double desire_vel, double car_len)
     dt = delt;
     desired_velocity = desire_vel;
     car_length= car_len;
+    dx = ddx;
+    dy = ddy;
 }
 
 void GlobalPlanner::generate_motion_primitives()
@@ -83,7 +85,7 @@ void GlobalPlanner::generate_motion_primitives()
     // primitive_M = MatrixXd(3, 400);// num_steps*(deltaF.size() + deltaB.size()));
     
     //  Computing and storing the motion primitives......... 
-    for(int jj=0;jj<2;++jj)
+    for(int jj=0;jj<1;++jj)
     {
         if(jj==0)
             nsteps = num_stepsL-1;
@@ -165,7 +167,7 @@ void GlobalPlanner::PrecomputeCost(vector<double> steerF, vector<double> steerB)
     // Function to pre-compute the cost for different motion patterns weighed on curvature, forward/reverse.
     double cost;
     int nsteps;
-    for(int jj=0;jj<2;++jj)
+    for(int jj=0;jj<1;++jj)
     {
         if(jj==0)
             nsteps = num_stepsL;
@@ -217,6 +219,8 @@ double GlobalPlanner::compute2DH(Global_State st, OccGrid occupancy)
     unordered_map <string, bool> p_close;
     set<f_COORDINATE> p_open;
     int dirs = 8;
+    double euH;
+
     vector <int> startS = xy2i(st);
     vector <int> goalS = xy2i(goal_state);
     string startH = stateHash2D(startS[0], startS[1]);
@@ -268,12 +272,13 @@ double GlobalPlanner::compute2DH(Global_State st, OccGrid occupancy)
                 }
                 if(imap.find(q_newH) == imap.end())
                     imap[q_newH] = Node2D(newX, newY, qH, DBL_MAX);
-                
+                euH = sqrt((newX-qx)*(newX-qx) + (newY-qy)*(newY-qy));
+
                 double gg = imap[qH].g +1;
                 if(imap[q_newH].g > gg)
                 {
                     imap[q_newH] = Node2D(newX, newY, qH, gg);
-                    p_open.insert(make_pair(gg, q_newH));
+                    p_open.insert(make_pair(gg+euH, q_newH));
                 }
             }
         }
@@ -328,26 +333,25 @@ vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
         }
     }
     // Motion Primitives with 5 steps
-    nsteps = num_stepsS;
-    int li=1;
-    for( ;mi <n_p.cols();++mi)
-    {
-        p.insert_state(Global_State(n_p.col(mi)[0]+dx, n_p.col(mi)[1]+dy, thetas[mi]+dtheta));
-        if(li%nsteps == 0)
-        {
-            MotionPrimitive p_new(p);
-            imap.push_back(p_new);
-            p.clear_primitives();
-        }
-        ++li;
-    }
+    // nsteps = num_stepsS;
+    // int li=1;
+    // for( ;mi <n_p.cols();++mi)
+    // {
+    //     p.insert_state(Global_State(n_p.col(mi)[0]+dx, n_p.col(mi)[1]+dy, thetas[mi]+dtheta));
+    //     if(li%nsteps == 0)
+    //     {
+    //         MotionPrimitive p_new(p);
+    //         imap.push_back(p_new);
+    //         p.clear_primitives();
+    //     }
+    //     ++li;
+    // }
     return imap;
 }
 
 vector<int> GlobalPlanner::xy2i(Global_State state)
 {
     //Function to conver the parking lot spatial location to occupancy grid indices
-    double dx = 0.1, dy = 0.1; 
     int ax = floor((state.x - xlim[0])/dx);
     int ay = floor((state.y - ylim[0])/dy);
     vector <int> pi {ax, ay};
@@ -457,6 +461,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
 
     int mexp = 0;
     // Expand till open list is not empty
+    double wt = 2.4;    // weight for weighted heuristic
     while(!open_list.empty() && !closed_list[goal])
     {   
         // Pick index with lowest f value from open list. Set will help in doing this as it is ordered.
@@ -529,7 +534,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
 
             double cost = cost_of_motion[mp_i];
             // hNew = computeEucH(q_new);
-            hNew = compute2DH(q_new, ocmap);
+            hNew = wt * compute2DH(q_new, ocmap);
             
             if(gmap.find(new_state) == gmap.end())
                 gmap[new_state] = GNode(q_new, curr_state, DBL_MAX, DBL_MAX, DBL_MAX, step);
@@ -846,7 +851,7 @@ void print_path(vector<Global_State> path)
 
 int main()
 {
-    double dx = 0.1 ,dy = 0.1;  // Grid discretization 
+    double dx = 0.2, dy = 0.2;     // Grid discretization
     double v_des = 1.2;     // Desrired Velocity
     double l_car = 2.2;     // Wheelbase of the vehicle
     double delT = 0.1;      // delta time of the simulation
@@ -856,11 +861,11 @@ int main()
 
     // Global_State startS = Global_State(-44.81,-31.04,PI/4);
     // Global_State goalS = Global_State(-13.5, -31.04, 3*PI/4);
-    Global_State startS = Global_State(-30, 15, 0);
-    // Global_State goalS = Global_State(15, 15, 0);   //0.40,-31.27,0);
-    Global_State goalS = Global_State(-54.12901306152344,-2.4843921661376953,0);
+    Global_State startS = Global_State(-5, 15, 0);
+    Global_State goalS = Global_State(15, 15, 0);   //0.40,-31.27,0);
+    // Global_State goalS = Global_State(-54.12901306152344,-2.4843921661376953,0);
 
-    GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car);
+    GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car, dx, dy);
 
     vector<Global_State> vehicle_path;
     // Prcomputing the motion primitives
@@ -868,7 +873,7 @@ int main()
 
     parking parkV;
     // instantanting the occupance grid...........
-    OccGrid occ;
+    OccGrid occ(dx, dy);
     occ.generate_static_occ(parkV);
     occ.update_static_occ({44}, 0); // Setting parking lot as empty
 
