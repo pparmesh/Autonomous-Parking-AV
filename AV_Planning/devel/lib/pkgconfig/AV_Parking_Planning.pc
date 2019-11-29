@@ -1,0 +1,8 @@
+prefix=/home/prateek/fall_19/16782/AV_Planning/AV_Planning/devel
+
+Name: AV_Parking_Planning
+Description: Description of AV_Parking_Planning
+Version: 1.0.0
+Cflags: -I/home/prateek/fall_19/16782/AV_Planning/AV_Planning/src/AV_Parking_Planning/include
+Libs: -L/home/prateek/fall_19/16782/AV_Planning/AV_Planning/devel/lib -lAV_Parking_Planning
+Requires: 

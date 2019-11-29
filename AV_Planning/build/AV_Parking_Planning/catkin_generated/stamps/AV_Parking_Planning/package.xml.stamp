@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>AV_Parking_Planning</name>
+  <version>1.0.0</version>
+  <description>Autonomous Parking for AVs Package</description>
+
+  <!-- One maintainer tag required, multiple allowed, one person per tag -->
+  <maintainer email="pparmesh@andrew.cmu.edu">Prateek Parmeshwar</maintainer>
+
+
+  <!-- One license tag required, multiple allowed, one license per tag -->
+  <!-- Commonly used license strings: -->
+  <license>BSD</license>
+
+
+  <!-- Url tags are optional, but multiple are allowed, one per tag -->
+  <!-- Optional attribute type can be: website, bugtracker, or repository -->
+  <url type="repository">https://github.com/aroongta/AV_Planning</url>
+
+
+  <!-- Author tags are optional, multiple are allowed, one per tag -->
+  <!-- Authors do not have to be maintainers, but could be -->
+  <author email="pparmesh@andrew.cmu.edu">Prateek Parmeshwar</author>
+
+
+  <!-- The *depend tags are used to specify dependencies -->
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>cmake_modules</build_depend>
+  <build_depend>carla_ros_bridge</build_depend>
+  <build_export_depend>carla_ros_bridge</build_export_depend>
+  <exec_depend>carla_ros_bridge</exec_depend>
+  <depend>rosparam_handler</depend>
+  <depend>geometry_msgs</depend>
+
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <!-- Other tools can request additional information be placed here -->
+
+  </export>
+</package>
