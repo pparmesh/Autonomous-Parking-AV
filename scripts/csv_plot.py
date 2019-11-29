@@ -1,16 +1,14 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+from parking_plot import *
 
-
-if __name__ =='__main__':
+def plot_primitives(startS, goalS):
 	ss = pd.read_csv("startS.csv").values
 	sg = pd.read_csv("goalS.csv").values
 
-	startS = [-44.81,-31.04]
-	goalS = [-13.5, -31.04]
-	# startS = [-5, 15]
-	# goalS = [15,15]
+
 	plt.scatter(startS[0], startS[1])
 	plt.scatter(goalS[0], goalS[1])
 
@@ -25,3 +23,61 @@ if __name__ =='__main__':
 		i+=3
 
 	plt.show()
+
+def plot_path(startS, goalS):
+	f = pd.read_csv("waypoints.csv").values
+
+	xlim = [-62,30]
+	ylim = [-40, 40]
+
+	plt.scatter(startS[0] ,startS[1], s=10)
+	plt.scatter(goalS[0], goalS[1], s=10)
+
+	plt.scatter(f[:,0], f[:,1], s=2)
+	plt.show()
+
+def plot_swath(startS, goalS):
+
+	f = pd.read_csv("waypoints.csv").values
+
+	xlim = [-62,30]
+	ylim = [-40, 40]
+
+	l = 0.8
+	w = 2
+	fig, ax =plt.subplots(1)
+
+
+
+	# Plotting the occupancy grid....................
+	map1 = Map(0.2, 0.2)
+	# occ_grid = map1.compute_occupancy_grid([44])
+	# ax.imshow(occ_grid.T, "Greys")
+	map1.plot_parking()
+
+	# Plotting the vehicle path swath
+	rect = Rectangle((startS[0], startS[1]), w, l, angle = startS[2]*180/np.pi, linewidth=0.2, edgecolor='r',facecolor='none')
+	ax.add_patch(rect)
+	rect = Rectangle((goalS[0], goalS[1]), w, l, angle = goalS[2]*180/np.pi, linewidth=0.2, edgecolor='r',facecolor='none')
+	ax.add_patch(rect)
+	for i in range(f.shape[0]):
+		rect = Rectangle((f[i,0], f[i,1]), w, l, angle = f[i,2]*180/np.pi, linewidth=0.2, edgecolor='r',facecolor='none')
+		ax.add_patch(rect)
+
+	plt.xlim(xlim[0], xlim[1])
+	plt.ylim(ylim[0], ylim[1])
+	
+	plt.show()
+
+
+
+if __name__ =='__main__':	
+	start_state = [-30, 15, 0];
+
+	goal_state = [-54.12901306152344,-2.4843921661376953, np.pi]
+	# start_state = [-5, 15]
+	# goal_state = [15,15]
+
+	# plot_primitives(start_state, goal_state)
+	# plot_path(start_state, goal_state)
+	plot_swath(start_state, goal_state)

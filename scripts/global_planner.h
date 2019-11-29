@@ -225,6 +225,8 @@ class GlobalPlanner
 
         void motion_primitive_writer(vector <MotionPrimitive> mpd, string file_name);
 
+        void publish_path(vector<Global_State> path, string file_name);
+
         vector<MotionPrimitive> startS_primitives();
 
     

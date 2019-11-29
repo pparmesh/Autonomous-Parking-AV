@@ -9,11 +9,13 @@ def wrap2pi(a):
     return a
 
 class Map():
-	def __init__(self):
+	def __init__(self, ddx, ddy):
 		self.w = 2.7572021484375
 		self.l = 5.142044059999996
 		self.xlim = [-62,30]
 		self.ylim = [-40, 40]
+		self.dx = ddx
+		self.dy = ddy
 		self.spawn_points = np.load('Parking1.npy')
 		# Converting RHS to LHS
 		self.spawn_points[:,1]=-self.spawn_points[:,1]
@@ -36,7 +38,7 @@ class Map():
 			Y=[y[i]+(w/2)*np.cos(ang)+(l/2)*np.sin(ang),y[i]+(w/2)*np.cos(ang)+(l/2)*np.sin(ang),y[i]-(w/2)*np.cos(ang)-(l/2)*np.sin(ang),y[i]-(w/2)*np.cos(ang)-(l/2)*np.sin(ang)]
 			plt.plot(X,Y,'b')
 
-		plt.show()
+		# plt.show()
 
 	def xy2i(self, px, py):
 		"""
@@ -48,15 +50,15 @@ class Map():
 		by = ceil((py[1]-self.ylim[0])/self.dy)
 		return np.meshgrid(np.arange(ax,bx+1), np.arange(ay,by+1))
 
-	def occupancy_grid(self, dx=0.2, dy=0.2):
+	def occupancy_grid(self):
 		"""
 		Function to compute the obstacle grid from the queried spawn_points.
 		Spawn Points queried from the Carla Map "Parking1"
 		"""
 		w = self.w
 		l = self.l
-		self.dx = dx
-		self.dy = dy
+		dx = self.dx
+		dy = self.dy
 		spts = self.spawn_points
 		cp=1;
 
@@ -88,12 +90,56 @@ class Map():
 			occ_grid[occX, occY]=cp
 
 		plt.imshow(occ_grid.T, "Greys")
-		plt.show()
+		# plt.show()
+
+	def compute_occupancy_grid(self, empty_ind):
+		"""
+		Function to compute the obstacle grid from the queried spawn_points.
+		Spawn Points queried from the Carla Map "Parking1"
+		"""
+		w = self.w
+		l = self.l
+		dx = self.dx
+		dy = self.dy
+		spts = self.spawn_points
+		cp=1;
+
+		nx, ny = int((self.xlim[1]-self.xlim[0])/dx), int((self.ylim[1]-self.ylim[0])/dy)
+		print('Size of the parking lot: {} x {}'.format(nx,ny))
+		
+		# Initializing a 2D array for the occupancy grid with all zeros
+		occ_grid=np.zeros((nx,ny))
+		
+		# Randomly sampling the empty parking lots
+		n=5		# number of parking spots to leave empty
+		empty_lot= empty_ind #np.random.choice(np.arange(spts.shape[0]), n)
+		print(empty_lot)
+		for i in range(len(spts)):
+			#  Computing the parking bounding boxes
+			if i in empty_lot:
+				cp=5
+			else:
+				cp=20
+				# continue
+			ang = wrap2pi(abs(spts[i,2]*np.pi/180))
+			# ang = spts[i,2]*np.pi/180
+
+			pl_x = [spts[i,0]-(l/2)*np.cos(ang)-(w/2)*np.sin(ang),spts[i,0]+(l/2)*np.cos(ang)+(w/2)*np.sin(ang)]
+			pl_y = [spts[i,1]-(w/2)*np.cos(ang)-(l/2)*np.sin(ang), spts[i,1]+(w/2)*np.cos(ang)+(l/2)*np.sin(ang)]
+			# print(i, pl_x, pl_y, ang)
+			# Computing the occupancy grid indices
+			occX, occY = self.xy2i(pl_x, pl_y)
+			occ_grid[occX, occY]=cp
+
+		# plt.imshow(occ_grid.T, "Greys")
+		return occ_grid
+
 
 if __name__=='__main__':
-	map1=Map()
+	map1=Map(0.2, 0.2)
 	map1.plot_parking()
 	map1.occupancy_grid()
+	plt.show()
 	# p=map1.spawn_points[2]
 	# print(p)
 	# l=map1.l

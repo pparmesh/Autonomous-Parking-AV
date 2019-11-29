@@ -177,9 +177,9 @@ void GlobalPlanner::PrecomputeCost(vector<double> steerF, vector<double> steerB)
         for(double delta : steerF)
         {
             if(delta == 0)
-                cost = nsteps;
+                cost = 1;   //nsteps;
             else
-                cost = (nsteps/4)*abs(delta)*180/PI; 
+                cost = abs(delta); 
             // cost = abs(delta)*180/PI;
             cost_of_motion.push_back(cost);   
         }
@@ -188,9 +188,9 @@ void GlobalPlanner::PrecomputeCost(vector<double> steerF, vector<double> steerB)
         for(double delta : steerB)
         {
             if(delta == 0)
-                cost = 4*nsteps;
+                cost = 5;
             else
-                cost = nsteps*abs(delta)*180/PI;     // Setting the cost of backward motion = 2*cost of forward with same steering angle
+                cost = 3*abs(delta);     // Setting the cost of backward motion = 2*cost of forward with same steering angle
             cost_of_motion.push_back(cost);
         }
     }
@@ -236,6 +236,7 @@ double GlobalPlanner::compute2DH(Global_State st, OccGrid occupancy)
     p_open.insert(make_pair(0.0, startH));
     int dX[dirs] = {-1, -1, -1, 0, 0, 1, 1, 1};
     int dY[dirs] = {-1, 0, 1, -1, 1, -1, 0, 1};
+
     int qx, qy;
     while(!p_open.empty() && !p_close[goalH])
     {
@@ -287,7 +288,7 @@ double GlobalPlanner::compute2DH(Global_State st, OccGrid occupancy)
     if(!p_close[goalH])
     {
         cout<<" 2D heuristic could not find a path"<<endl;
-        return 0.0;
+        return -1;
     }
     // int h=0;
     // while(goalH != startH)
@@ -398,7 +399,7 @@ bool GlobalPlanner::isGoalState(Global_State st)
 {
     // Function to check if the goal_state st can be considered as the goal state
     // Considering a euclidean distance < epsilon to check if goal found (Temporary)
-    double eps = 2;
+    double eps = 1;
     double diff = sqrt((st.x-goal_state.x)*(st.x-goal_state.x) + (st.y-goal_state.y)*(st.y-goal_state.y));// + (st.theta-goal_state.theta)*(st.theta-goal_state.theta));
     double d_thet = abs(st.theta-goal_state.theta);
     double dstr = PI/18;
@@ -534,8 +535,11 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
 
             double cost = cost_of_motion[mp_i];
             // hNew = computeEucH(q_new);
-            hNew = wt * compute2DH(q_new, ocmap);
-            
+            hNew = compute2DH(q_new, ocmap);
+            if(hNew == -1)
+                continue;
+            else
+                hNew = hNew * wt;
             if(gmap.find(new_state) == gmap.end())
                 gmap[new_state] = GNode(q_new, curr_state, DBL_MAX, DBL_MAX, DBL_MAX, step);
 
@@ -600,6 +604,14 @@ void GlobalPlanner::motion_primitive_writer(vector<MotionPrimitive> mpd, string 
     }
     ffr.close();    
 
+}
+
+void GlobalPlanner::publish_path(vector<Global_State> path, string file_name)
+{
+    ofstream ffr (file_name);
+    for(Global_State sf : path)
+        ffr<<sf.x<<", "<<sf.y<<", "<<sf.theta<<endl;
+    ffr.close();
 }
 
 vector<MotionPrimitive> GlobalPlanner::startS_primitives()
@@ -861,9 +873,9 @@ int main()
 
     // Global_State startS = Global_State(-44.81,-31.04,PI/4);
     // Global_State goalS = Global_State(-13.5, -31.04, 3*PI/4);
-    Global_State startS = Global_State(-5, 15, 0);
-    Global_State goalS = Global_State(15, 15, 0);   //0.40,-31.27,0);
-    // Global_State goalS = Global_State(-54.12901306152344,-2.4843921661376953,0);
+    Global_State startS = Global_State(-30, 15, PI/4);
+    // Global_State goalS = Global_State(15, 15, 0);   //0.40,-31.27,0);
+    Global_State goalS = Global_State(-54.12901306152344,-2.4843921661376953,PI);
 
     GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car, dx, dy);
 
@@ -887,6 +899,7 @@ int main()
     // Searching for path to the goal...................................... 
     vehicle_path = g_planner.A_star(startS, goalS ,occ);
     print_path(vehicle_path);
+    g_planner.publish_path(vehicle_path, "waypoints.csv");
     
     cout<<" Time taken for computation : "<<(double)(clock() - start_t)/CLOCKS_PER_SEC<<" s"<<endl;
     
