@@ -105,6 +105,8 @@ class motion():
 		plt.scatter(st_0[0], st_0[1], s = 16)
 		for i in range(len(patterns)):
 			plt.plot(patterns[i][:,0], patterns[i][:,1], cl)
+			# print(patterns[i])
+			# print('________________________________')
 
 
 if __name__ == '__main__':

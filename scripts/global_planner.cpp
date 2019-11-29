@@ -266,13 +266,13 @@ double GlobalPlanner::compute2DH(Global_State st, OccGrid occupancy)
 
             if(newX>=0 && newX<mapX && newY>=0 && newY<mapY)
             {
-                if(!occupancy.isEmpty(newX, newY))
-                { 
-                    continue;   // skipping if there is an obstacle at the (x,y) location
-                }
+                // if(!occupancy.isEmpty(newX, newY))
+                // { 
+                //     continue;   // skipping if there is an obstacle at the (x,y) location
+                // }
                 if(imap.find(q_newH) == imap.end())
                     imap[q_newH] = Node2D(newX, newY, qH, DBL_MAX);
-                euH = sqrt((newX-qx)*(newX-qx) + (newY-qy)*(newY-qy));
+                euH = 0;    //sqrt((newX-qx)*(newX-qx) + (newY-qy)*(newY-qy));
 
                 double gg = imap[qH].g +1;
                 if(imap[q_newH].g > gg)
@@ -401,7 +401,7 @@ bool GlobalPlanner::isGoalState(Global_State st)
     double eps = 2;
     double diff = sqrt((st.x-goal_state.x)*(st.x-goal_state.x) + (st.y-goal_state.y)*(st.y-goal_state.y));// + (st.theta-goal_state.theta)*(st.theta-goal_state.theta));
     double d_thet = abs(st.theta-goal_state.theta);
-    double dstr = PI/18;
+    double dstr = PI/10;
     // cout<<diff<<" "<<d_thet<<endl;
     if(diff < eps && d_thet<dstr)
         return 1;
@@ -535,6 +535,8 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
             double cost = cost_of_motion[mp_i];
             // hNew = computeEucH(q_new);
             hNew = wt * compute2DH(q_new, ocmap);
+            if(hNew ==0)    //2D heuristic could not find a path
+                continue;
             
             if(gmap.find(new_state) == gmap.end())
                 gmap[new_state] = GNode(q_new, curr_state, DBL_MAX, DBL_MAX, DBL_MAX, step);
@@ -576,7 +578,7 @@ void GlobalPlanner::print_primitives(vector<MotionPrimitive> mpd)
 void GlobalPlanner::motion_primitive_writer(vector<MotionPrimitive> mpd, string file_name)
 {
     // Converting the vector of MotionPrimitives into a 2d Vector.
-    vector< vector<double>> pmap (9, vector<double> {0});
+    vector< vector<double>> pmap (num_stepsL, vector<double> {0});
     for(MotionPrimitive m : mpd)
     {
         vector<Global_State> mj = m.get_primitive();
@@ -861,9 +863,9 @@ int main()
 
     // Global_State startS = Global_State(-44.81,-31.04,PI/4);
     // Global_State goalS = Global_State(-13.5, -31.04, 3*PI/4);
-    Global_State startS = Global_State(-5, 15, 0);
-    Global_State goalS = Global_State(15, 15, 0);   //0.40,-31.27,0);
-    // Global_State goalS = Global_State(-54.12901306152344,-2.4843921661376953,0);
+    Global_State startS = Global_State(-30, 15, 0);
+    // Global_State goalS = Global_State(15, 15, 0);   //0.40,-31.27,0);
+    Global_State goalS = Global_State(-54.12901306152344,-2.4843921661376953,0);
 
     GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car, dx, dy);
 

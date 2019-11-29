@@ -10,7 +10,7 @@
 #include <Eigen/Dense>
 #include <fstream>
 
-#define num_stepsL 9
+#define num_stepsL 12
 #define num_stepsS 0
 #define PI 3.141592654
 #define mapX 460    // xlim [-62, 30]
