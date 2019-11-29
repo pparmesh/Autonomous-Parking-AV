@@ -1,0 +1,32 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/prateek/fall_19/16782/AV_Planning/AV_Planning/src/AV_Parking_Planning/include/AV_Parking_Planning/local_planner.hpp
+local_waypoints.hpp
+/home/prateek/fall_19/16782/AV_Planning/AV_Planning/src/AV_Parking_Planning/include/AV_Parking_Planning/local_waypoints.hpp
+iostream
+-
+math.h
+-
+eigen3/Eigen/Dense
+-
+
+/home/prateek/fall_19/16782/AV_Planning/AV_Planning/src/AV_Parking_Planning/include/AV_Parking_Planning/local_waypoints.hpp
+cmath
+-
+
+/home/prateek/fall_19/16782/AV_Planning/AV_Planning/src/AV_Parking_Planning/src/local_planner.cpp
+AV_Parking_Planning/local_planner.hpp
+/home/prateek/fall_19/16782/AV_Planning/AV_Planning/src/AV_Parking_Planning/src/AV_Parking_Planning/local_planner.hpp
+eigen3/Eigen/Dense
+-
+iostream
+-
+math.h
+-
+
