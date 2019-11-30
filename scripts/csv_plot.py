@@ -8,6 +8,8 @@ def plot_primitives(startS, goalS):
 	ss = pd.read_csv("startS.csv").values
 	sg = pd.read_csv("goalS.csv").values
 
+	xlim = [-62,30]
+	ylim = [-40, 40]
 
 	plt.scatter(startS[0], startS[1])
 	plt.scatter(goalS[0], goalS[1])
@@ -21,6 +23,9 @@ def plot_primitives(startS, goalS):
 	while i<(sg.shape[1]-1):
 		plt.plot(sg[:,i], sg[:,1+i], 'b')
 		i+=3
+
+	plt.xlim(xlim[0], xlim[1])
+	plt.ylim(ylim[0], ylim[1])
 
 	plt.show()
 
@@ -72,9 +77,10 @@ def plot_swath(startS, goalS):
 
 
 if __name__ =='__main__':	
-	start_state = [-10, 22, 0];
+	PI = np.pi
+	start_state = [-15, 30, 3*PI/2]
 
-	goal_state = [-54.12901306152344,-2.4843921661376953, np.pi]
+	goal_state = [2.1477136611938477, -13.62131118774414, PI]
 	# start_state = [-5, 15]
 	# goal_state = [15,15]
 

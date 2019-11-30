@@ -20,6 +20,16 @@ using namespace std;
 using namespace Eigen;
 
 
+double wrap2pi(double angle)
+{
+    // Function to wrap the angles between 0 and 2pi
+    angle = fmod(angle, 2*PI);
+    if(angle < 0)
+        angle+=2*PI;
+
+    return angle;
+}
+
 struct Global_State
 {
     double x; 
@@ -87,6 +97,7 @@ class parking
         Global_State get_loc(int j);
         vector<int> parking_state();
         bool isAvailable(int j);
+        void reserve_spot(vector<int> inds);
 
 };
 
@@ -177,10 +188,11 @@ class GlobalPlanner
         vector<MotionPrimitive> motion_primitives;
 
         vector<double> cost_of_motion;
-        MatrixXd primitive_M= MatrixXd(3,(num_stepsL+num_stepsS)*(15+9)); //num_steps*(28+23)> primitive_M;
+        MatrixXd primitive_M= MatrixXd(3,(num_stepsL+num_stepsS)*(21+11)); //num_steps*(28+23)> primitive_M;
         vector<double> thetas;
 
         unordered_map<string, GNode> gmap;
+        unordered_map<string, GNode> hmap;
 
         vector<double> xlim {-62, 30};
         vector<double> ylim {-40, 40};
@@ -197,10 +209,15 @@ class GlobalPlanner
         void PrecomputeCost(vector<double> steerF, vector<double> steerB);
 
         double computeEucH(Global_State st);
+
         string stateHash2D(int sx, int sy);
         
+        double computeH(Global_State st, OccGrid occupancy);
         double compute2DH(Global_State st, OccGrid occupancy);
         
+        void pre_compute3DH(Global_State st);
+        double compute3DH(Global_State st);
+
         vector<MotionPrimitive> transform_primitive(Global_State n_st);
 
         vector<int> xy2i(Global_State state);
@@ -209,7 +226,7 @@ class GlobalPlanner
         
         string get_state_hash(Global_State state);
 
-        bool CollisionCheck(MotionPrimitive motion);
+        bool CollisionCheck(MotionPrimitive motion, OccGrid ocmap);
 
         bool isGoalState(Global_State st);
         
