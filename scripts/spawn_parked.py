@@ -13,7 +13,7 @@ import os
 import sys
 
 try:
-    sys.path.append(glob.glob('../PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
+    sys.path.append(glob.glob('../../PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
         sys.version_info.major,
         sys.version_info.minor,
         'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
@@ -27,6 +27,37 @@ import logging
 import random
 
 import numpy as np
+
+def spawn_parkV(carla, client, empty_lot):
+    """
+    Function to spawn the parked vehicles..
+    """
+    try:
+        world = client.get_world()
+        spawn_points = world.get_map().get_spawn_points()
+        number_of_spawn_points = len(spawn_points)
+ 
+        blueprints=world.get_blueprint_library()
+
+        batch=[]
+        for i,w in enumerate(spawn_points):
+            if i in empty_lot:
+                continue
+            blueprint = random.choice(blueprints.filter('vehicle.bmw.grandtourer'))
+            color=random.choice(blueprint.get_attribute('color').recommended_values)
+            blueprint.set_attribute('color',color)
+            batch.append(carla.command.SpawnActor(blueprint,w))
+            
+
+        for response in client.apply_batch_sync(batch):
+            if response.error:
+                logging.error(response.error)
+            else:
+                vehicles_list.append(response.actor_id)
+    except:
+        print("error ")
+
+
 
 def main():
     argparser = argparse.ArgumentParser(
@@ -76,7 +107,8 @@ def main():
 
         spawn_points = world.get_map().get_spawn_points()
         number_of_spawn_points = len(spawn_points)
-
+        for w in spawn_points:
+            print(w)
         # Randomly choising n empty parking lots
         n=args.number_of_vehicles
         empty_lot=np.random.choice(np.arange(number_of_spawn_points),n)
@@ -98,7 +130,6 @@ def main():
             else:
                 vehicles_list.append(response.actor_id)
 
-        all_actors = world.get_actors(all_id)
 
         # wait for a tick to ensure client receives the last transform of the walkers we have just created
         world.wait_for_tick()
