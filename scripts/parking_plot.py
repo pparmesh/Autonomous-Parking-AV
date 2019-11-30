@@ -28,8 +28,8 @@ class Map():
 
 		a=self.spawn_points
 		x=a[:,0]
-		y=-a[:,1]
-		theta=-a[:,2]
+		y=a[:,1]
+		theta=a[:,2]
 		plt.scatter(x,y,s=2)
 		for i in range(len(a)):
 			ang=theta[i]*np.pi/180
@@ -90,7 +90,7 @@ class Map():
 			occ_grid[occX, occY]=cp
 
 		plt.imshow(occ_grid.T, "Greys")
-		# plt.show()
+		plt.show()
 
 	def compute_occupancy_grid(self, empty_ind):
 		"""
@@ -138,8 +138,8 @@ class Map():
 if __name__=='__main__':
 	map1=Map(0.2, 0.2)
 	map1.plot_parking()
-	map1.occupancy_grid()
 	plt.show()
+	map1.occupancy_grid()
 	# p=map1.spawn_points[2]
 	# print(p)
 	# l=map1.l

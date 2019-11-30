@@ -72,7 +72,7 @@ def plot_swath(startS, goalS):
 
 
 if __name__ =='__main__':	
-	start_state = [-30, 15, 0];
+	start_state = [-10, 22, 0];
 
 	goal_state = [-54.12901306152344,-2.4843921661376953, np.pi]
 	# start_state = [-5, 15]

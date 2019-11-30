@@ -471,7 +471,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
         // If they are not in closed list, find their f-values. If they are in the open list with a larger
         // f-value then update it, otherwise add this index to the open list. 
         // Loop till goal state has not been expanded.
-        if(mexp > 30000)
+        if(mexp > 3000)
             break;
         ++mexp;
         // Get index from openlist. Pop the first value from the open list.
@@ -647,7 +647,6 @@ void OccGrid::update_static_occ(vector<int> veh_i, int full)
         for(int n=veh_i[1]; n<=veh_i[3]; ++n)
             occ_map[m][n] = full;
     }
-
 }
 
 vector<double> OccGrid::pBoxlim(Global_State ploc)
@@ -657,12 +656,12 @@ vector<double> OccGrid::pBoxlim(Global_State ploc)
     double y = ploc.y;
     double thet = abs(ploc.theta);
     vector<double> xy;
-    if(thet>=PI)
+    if(thet>=3.14)
         thet = 0;
-    xy.push_back(x - cos(thet)*(l/2) - sin(thet)*w/2);
-    xy.push_back(x + cos(thet)*(l/2) + sin(thet)*w/2);
-    xy.push_back(y - cos(thet)*(w/2) - sin(thet)*l/2);
-    xy.push_back(y + cos(thet)*(w/2) + sin(thet)*l/2);
+    xy.push_back(x - cos(thet)*(l/2) - sin(thet)*(w/2));
+    xy.push_back(x + cos(thet)*(l/2) + sin(thet)*(w/2));
+    xy.push_back(y - cos(thet)*(w/2) - sin(thet)*(l/2));
+    xy.push_back(y + cos(thet)*(w/2) + sin(thet)*(l/2));
     return xy;
 }
 
@@ -687,121 +686,132 @@ vector<vector<int>> OccGrid::get_occmap()
     return occ_map;
 }
 
+void OccGrid::occ_map_publish(string file_name)
+{
+    ofstream ffr (file_name);
+    for(int o=0; o<occ_map.size();++o)
+    {
+        for(int og : occ_map[o])
+            ffr<<og<<" ,";
+        ffr<<endl;
+    }
+}
+
 // -----------------------------------------------------------------------------------------------------------------------
 
 parking::parking()
 {
     // Storing the prking box locations................
-    parkX.push_back(Global_State(-47.61477279663086,31.042869567871094,-1.57078873678579));
-    parkX.push_back(Global_State(-13.505621910095215,-31.273136138916016,1.5708025852234582));
-    parkX.push_back(Global_State(-16.27899932861328,-31.273151397705078,1.5708025852234582));
-    parkX.push_back(Global_State(-19.057735443115234,-31.27314567565918,1.5708025852234582));
-    parkX.push_back(Global_State(-21.841434478759766,-31.27312660217285,1.5708025852234582));
-    parkX.push_back(Global_State(-24.631704330444336,-31.273109436035156,1.5708025852234582));
-    parkX.push_back(Global_State(-10.727664947509766,-31.273151397705078,1.5708025852234582));
-    parkX.push_back(Global_State(-7.950075626373291,-31.27320671081543,1.5708025852234582));
-    parkX.push_back(Global_State(-5.160816669464111,-31.273231506347656,1.5708025852234582));
-    parkX.push_back(Global_State(-2.4036195278167725,-31.273216247558594,1.5708025852234582));
-    parkX.push_back(Global_State(2.1477136611938477,-13.62131118774414,-0.0));
-    parkX.push_back(Global_State(0.4022550880908966,-31.27322006225586,1.5708025852234582));
-    parkX.push_back(Global_State(24.663219451904297,0.28649184107780457,-0.0));
-    parkX.push_back(Global_State(24.663219451904297,3.059866189956665,-0.0));
-    parkX.push_back(Global_State(24.663219451904297,5.83858585357666,-0.0));
-    parkX.push_back(Global_State(24.663219451904297,8.622309684753418,-0.0));
-    parkX.push_back(Global_State(24.663219451904297,11.412550926208496,-0.0));
-    parkX.push_back(Global_State(24.66319465637207,-2.4914541244506836,-0.0));
-    parkX.push_back(Global_State(24.663150787353516,-5.269047260284424,-0.0));
-    parkX.push_back(Global_State(24.663150787353516,-8.058199882507324,-0.0));
-    parkX.push_back(Global_State(24.663150787353516,-10.815412521362305,-0.0));
-    parkX.push_back(Global_State(24.663150787353516,-13.621313095092773,-0.0));
-    parkX.push_back(Global_State(-23.06333351135254,0.28649425506591797,-0.0));
-    parkX.push_back(Global_State(-23.06333351135254,3.059868812561035,-0.0));
-    parkX.push_back(Global_State(-23.06333351135254,5.838588237762451,-0.0));
-    parkX.push_back(Global_State(-23.06333351135254,8.622312545776367,-0.0));
-    parkX.push_back(Global_State(-23.06333351135254,11.412553787231445,-0.0));
-    parkX.push_back(Global_State(-23.063358306884766,-2.4914517402648926,-0.0));
-    parkX.push_back(Global_State(-23.063398361206055,-5.269044876098633,-0.0));
-    parkX.push_back(Global_State(-23.06340217590332,-8.058197021484375,-0.0));
-    parkX.push_back(Global_State(-23.06340217590332,-10.815409660339355,-0.0));
-    parkX.push_back(Global_State(2.147777795791626,3.059868812561035,-0.0));
-    parkX.push_back(Global_State(-23.063398361206055,-13.62131118774414,-0.0));
-    parkX.push_back(Global_State(-48.98688888549805,0.2864780128002167,-0.0));
-    parkX.push_back(Global_State(-48.98688888549805,3.0598528385162354,-0.0));
-    parkX.push_back(Global_State(-48.98688888549805,5.838579177856445,-0.0));
-    parkX.push_back(Global_State(-48.98688888549805,8.622303009033203,-0.0));
-    parkX.push_back(Global_State(-48.98688888549805,11.412550926208496,-0.0));
-    parkX.push_back(Global_State(-48.98691177368164,-2.491468906402588,-0.0));
-    parkX.push_back(Global_State(-48.98695373535156,-5.269053936004639,-0.0));
-    parkX.push_back(Global_State(-48.98695755004883,-8.058206558227539,-0.0));
-    parkX.push_back(Global_State(-48.98695755004883,-10.815412521362305,-0.0));
-    parkX.push_back(Global_State(2.147777795791626,5.838588237762451,-0.0));
-    parkX.push_back(Global_State(-48.98695373535156,-13.621313095092773,-0.0));
-    parkX.push_back(Global_State(-54.12901306152344,-2.4843921661376953,-3.1415891914803757));
-    parkX.push_back(Global_State(-54.12900161743164,-5.257752418518066,-3.1415891914803757));
-    parkX.push_back(Global_State(-54.12900161743164,-8.036470413208008,-3.1415891914803757));
-    parkX.push_back(Global_State(-54.1290168762207,-10.820185661315918,-3.1415891914803757));
-    parkX.push_back(Global_State(-54.129032135009766,-13.61042308807373,-3.1415891914803757));
-    parkX.push_back(Global_State(-54.12899398803711,0.2935601472854614,-3.1415891914803757));
-    parkX.push_back(Global_State(-54.12893295288086,3.071143627166748,-3.1415891914803757));
-    parkX.push_back(Global_State(-54.12893295288086,5.860317230224609,-3.1415891914803757));
-    parkX.push_back(Global_State(-54.12893295288086,8.617523193359375,-3.1415891914803757));
-    parkX.push_back(Global_State(2.147777795791626,8.622312545776367,-0.0));
-    parkX.push_back(Global_State(-54.12893295288086,11.423429489135742,-3.1415891914803757));
-    parkX.push_back(Global_State(-28.20282745361328,-2.4843077659606934,-3.1415891914803757));
-    parkX.push_back(Global_State(-28.202816009521484,-5.257676124572754,-3.1415891914803757));
-    parkX.push_back(Global_State(-28.202816009521484,-8.036394119262695,-3.1415891914803757));
-    parkX.push_back(Global_State(-28.202831268310547,-10.820122718811035,-3.1415891914803757));
-    parkX.push_back(Global_State(-28.20284652709961,-13.61036205291748,-3.1415891914803757));
-    parkX.push_back(Global_State(-28.20280647277832,0.293643981218338,-3.1415891914803757));
-    parkX.push_back(Global_State(-28.202749252319336,3.0712268352508545,-3.1415891914803757));
-    parkX.push_back(Global_State(-28.202749252319336,5.860393524169922,-3.1415891914803757));
-    parkX.push_back(Global_State(-28.202749252319336,8.617599487304688,-3.1415891914803757));
-    parkX.push_back(Global_State(2.147777795791626,11.412553787231445,-0.0));
-    parkX.push_back(Global_State(-28.202749252319336,11.423492431640625,-3.1415891914803757));
-    parkX.push_back(Global_State(-3.0148494243621826,-2.4842357635498047,-3.1415891914803757));
-    parkX.push_back(Global_State(-3.0148396492004395,-5.25760555267334,-3.1415891914803757));
-    parkX.push_back(Global_State(-3.0148396492004395,-8.036323547363281,-3.1415891914803757));
-    parkX.push_back(Global_State(-3.0148544311523438,-10.820058822631836,-3.1415891914803757));
-    parkX.push_back(Global_State(-3.014868974685669,-13.610297203063965,-3.1415891914803757));
-    parkX.push_back(Global_State(-3.0148298740386963,0.2937156558036804,-3.1415891914803757));
-    parkX.push_back(Global_State(-3.0147714614868164,3.071298837661743,-3.1415891914803757));
-    parkX.push_back(Global_State(-3.0147714614868164,5.860464572906494,-3.1415891914803757));
-    parkX.push_back(Global_State(-3.0147714614868164,8.617670059204102,-3.1415891914803757));
-    parkX.push_back(Global_State(2.147754669189453,-2.4914517402648926,-0.0));
-    parkX.push_back(Global_State(-3.0147714614868164,11.42355728149414,-3.1415891914803757));
-    parkX.push_back(Global_State(19.509239196777344,-2.4841694831848145,-3.1415891914803757));
-    parkX.push_back(Global_State(19.509248733520508,-5.257540702819824,-3.1415891914803757));
-    parkX.push_back(Global_State(19.509248733520508,-8.036258697509766,-3.1415891914803757));
-    parkX.push_back(Global_State(19.509233474731445,-10.819997787475586,-3.1415891914803757));
-    parkX.push_back(Global_State(19.509220123291016,-13.610236167907715,-3.1415891914803757));
-    parkX.push_back(Global_State(19.509258270263672,0.29378244280815125,-3.1415891914803757));
-    parkX.push_back(Global_State(19.50931739807129,3.0713627338409424,-3.1415891914803757));
-    parkX.push_back(Global_State(19.50931739807129,5.860528945922852,-3.1415891914803757));
-    parkX.push_back(Global_State(19.50931739807129,8.617734909057617,-3.1415891914803757));
-    parkX.push_back(Global_State(2.1477136611938477,-5.269044876098633,-0.0));
-    parkX.push_back(Global_State(19.50931739807129,11.42361831665039,-3.1415891914803757));
-    parkX.push_back(Global_State(7.5478339195251465,31.41176414489746,-1.57078873678579));
-    parkX.push_back(Global_State(10.321207046508789,31.41177749633789,-1.57078873678579));
-    parkX.push_back(Global_State(13.09992790222168,31.411773681640625,-1.57078873678579));
-    parkX.push_back(Global_State(15.883647918701172,31.411766052246094,-1.57078873678579));
-    parkX.push_back(Global_State(18.673912048339844,31.411752700805664,-1.57078873678579));
-    parkX.push_back(Global_State(4.769878387451172,31.411779403686523,-1.57078873678579));
-    parkX.push_back(Global_State(1.9922960996627808,31.411842346191406,-1.57078873678579));
-    parkX.push_back(Global_State(-0.7968673706054688,31.411840438842773,-1.57078873678579));
-    parkX.push_back(Global_State(-3.5540740489959717,31.41183853149414,-1.57078873678579));
-    parkX.push_back(Global_State(2.147712469100952,-8.058197021484375,-0.0));
-    parkX.push_back(Global_State(-6.359940528869629,31.411834716796875,-1.57078873678579));
-    parkX.push_back(Global_State(-33.7070198059082,31.042797088623047,-1.57078873678579));
-    parkX.push_back(Global_State(-30.933645248413086,31.04281234741211,-1.57078873678579));
-    parkX.push_back(Global_State(-28.15492820739746,31.04280662536621,-1.57078873678579));
-    parkX.push_back(Global_State(-25.37120819091797,31.042802810668945,-1.57078873678579));
-    parkX.push_back(Global_State(-22.580942153930664,31.042787551879883,-1.57078873678579));
-    parkX.push_back(Global_State(-36.48496627807617,31.04281234741211,-1.57078873678579));
-    parkX.push_back(Global_State(-39.26255416870117,31.042875289916992,-1.57078873678579));
-    parkX.push_back(Global_State(-42.05170822143555,31.042875289916992,-1.57078873678579));
-    parkX.push_back(Global_State(-44.80891036987305,31.042869567871094,-1.57078873678579));
-    parkX.push_back(Global_State(2.1477112770080566,-10.815409660339355,-0.0));
-    parkX.push_back(Global_State(2.147777795791626,0.28649425506591797,-0.0));
+    parkX.push_back(Global_State(-47.61477279663086, 31.042869567871094, -1.57078873678579));
+    parkX.push_back(Global_State(-13.505621910095215, -31.273136138916016, 1.5708025852234582));
+    parkX.push_back(Global_State(-16.27899932861328, -31.273151397705078, 1.5708025852234582));
+    parkX.push_back(Global_State(-19.057735443115234, -31.27314567565918, 1.5708025852234582));
+    parkX.push_back(Global_State(-21.841434478759766, -31.27312660217285, 1.5708025852234582));
+    parkX.push_back(Global_State(-24.631704330444336, -31.273109436035156, 1.5708025852234582));
+    parkX.push_back(Global_State(-10.727664947509766, -31.273151397705078, 1.5708025852234582));
+    parkX.push_back(Global_State(-7.950075626373291, -31.27320671081543, 1.5708025852234582));
+    parkX.push_back(Global_State(-5.160816669464111, -31.273231506347656, 1.5708025852234582));
+    parkX.push_back(Global_State(-2.4036195278167725, -31.273216247558594, 1.5708025852234582));
+    parkX.push_back(Global_State(2.1477136611938477, -13.62131118774414, -0.0));
+    parkX.push_back(Global_State(0.4022550880908966, -31.27322006225586, 1.5708025852234582));
+    parkX.push_back(Global_State(24.663219451904297, 0.28649184107780457, -0.0));
+    parkX.push_back(Global_State(24.663219451904297, 3.059866189956665, -0.0));
+    parkX.push_back(Global_State(24.663219451904297, 5.83858585357666, -0.0));
+    parkX.push_back(Global_State(24.663219451904297, 8.622309684753418, -0.0));
+    parkX.push_back(Global_State(24.663219451904297, 11.412550926208496, -0.0));
+    parkX.push_back(Global_State(24.66319465637207, -2.4914541244506836, -0.0));
+    parkX.push_back(Global_State(24.663150787353516, -5.269047260284424, -0.0));
+    parkX.push_back(Global_State(24.663150787353516, -8.058199882507324, -0.0));
+    parkX.push_back(Global_State(24.663150787353516, -10.815412521362305, -0.0));
+    parkX.push_back(Global_State(24.663150787353516, -13.621313095092773, -0.0));
+    parkX.push_back(Global_State(-23.06333351135254, 0.28649425506591797, -0.0));
+    parkX.push_back(Global_State(-23.06333351135254, 3.059868812561035, -0.0));
+    parkX.push_back(Global_State(-23.06333351135254, 5.838588237762451, -0.0));
+    parkX.push_back(Global_State(-23.06333351135254, 8.622312545776367, -0.0));
+    parkX.push_back(Global_State(-23.06333351135254, 11.412553787231445, -0.0));
+    parkX.push_back(Global_State(-23.063358306884766, -2.4914517402648926, -0.0));
+    parkX.push_back(Global_State(-23.063398361206055, -5.269044876098633, -0.0));
+    parkX.push_back(Global_State(-23.06340217590332, -8.058197021484375, -0.0));
+    parkX.push_back(Global_State(-23.06340217590332, -10.815409660339355, -0.0));
+    parkX.push_back(Global_State(2.147777795791626, 3.059868812561035, -0.0));
+    parkX.push_back(Global_State(-23.063398361206055, -13.62131118774414, -0.0));
+    parkX.push_back(Global_State(-48.98688888549805, 0.2864780128002167, -0.0));
+    parkX.push_back(Global_State(-48.98688888549805, 3.0598528385162354, -0.0));
+    parkX.push_back(Global_State(-48.98688888549805, 5.838579177856445, -0.0));
+    parkX.push_back(Global_State(-48.98688888549805, 8.622303009033203, -0.0));
+    parkX.push_back(Global_State(-48.98688888549805, 11.412550926208496, -0.0));
+    parkX.push_back(Global_State(-48.98691177368164, -2.491468906402588, -0.0));
+    parkX.push_back(Global_State(-48.98695373535156, -5.269053936004639, -0.0));
+    parkX.push_back(Global_State(-48.98695755004883, -8.058206558227539, -0.0));
+    parkX.push_back(Global_State(-48.98695755004883, -10.815412521362305, -0.0));
+    parkX.push_back(Global_State(2.147777795791626, 5.838588237762451, -0.0));
+    parkX.push_back(Global_State(-48.98695373535156, -13.621313095092773, -0.0));
+    parkX.push_back(Global_State(-54.12901306152344, -2.4843921661376953, -3.1415891914803757));
+    parkX.push_back(Global_State(-54.12900161743164, -5.257752418518066, -3.1415891914803757));
+    parkX.push_back(Global_State(-54.12900161743164, -8.036470413208008, -3.1415891914803757));
+    parkX.push_back(Global_State(-54.1290168762207, -10.820185661315918, -3.1415891914803757));
+    parkX.push_back(Global_State(-54.129032135009766, -13.61042308807373, -3.1415891914803757));
+    parkX.push_back(Global_State(-54.12899398803711, 0.2935601472854614, -3.1415891914803757));
+    parkX.push_back(Global_State(-54.12893295288086, 3.071143627166748, -3.1415891914803757));
+    parkX.push_back(Global_State(-54.12893295288086, 5.860317230224609, -3.1415891914803757));
+    parkX.push_back(Global_State(-54.12893295288086, 8.617523193359375, -3.1415891914803757));
+    parkX.push_back(Global_State(2.147777795791626, 8.622312545776367, -0.0));
+    parkX.push_back(Global_State(-54.12893295288086, 11.423429489135742, -3.1415891914803757));
+    parkX.push_back(Global_State(-28.20282745361328, -2.4843077659606934, -3.1415891914803757));
+    parkX.push_back(Global_State(-28.202816009521484, -5.257676124572754, -3.1415891914803757));
+    parkX.push_back(Global_State(-28.202816009521484, -8.036394119262695, -3.1415891914803757));
+    parkX.push_back(Global_State(-28.202831268310547, -10.820122718811035, -3.1415891914803757));
+    parkX.push_back(Global_State(-28.20284652709961, -13.61036205291748, -3.1415891914803757));
+    parkX.push_back(Global_State(-28.20280647277832, 0.293643981218338, -3.1415891914803757));
+    parkX.push_back(Global_State(-28.202749252319336, 3.0712268352508545, -3.1415891914803757));
+    parkX.push_back(Global_State(-28.202749252319336, 5.860393524169922, -3.1415891914803757));
+    parkX.push_back(Global_State(-28.202749252319336, 8.617599487304688, -3.1415891914803757));
+    parkX.push_back(Global_State(2.147777795791626, 11.412553787231445, -0.0));
+    parkX.push_back(Global_State(-28.202749252319336, 11.423492431640625, -3.1415891914803757));
+    parkX.push_back(Global_State(-3.0148494243621826, -2.4842357635498047, -3.1415891914803757));
+    parkX.push_back(Global_State(-3.0148396492004395, -5.25760555267334, -3.1415891914803757));
+    parkX.push_back(Global_State(-3.0148396492004395, -8.036323547363281, -3.1415891914803757));
+    parkX.push_back(Global_State(-3.0148544311523438, -10.820058822631836, -3.1415891914803757));
+    parkX.push_back(Global_State(-3.014868974685669, -13.610297203063965, -3.1415891914803757));
+    parkX.push_back(Global_State(-3.0148298740386963, 0.2937156558036804, -3.1415891914803757));
+    parkX.push_back(Global_State(-3.0147714614868164, 3.071298837661743, -3.1415891914803757));
+    parkX.push_back(Global_State(-3.0147714614868164, 5.860464572906494, -3.1415891914803757));
+    parkX.push_back(Global_State(-3.0147714614868164, 8.617670059204102, -3.1415891914803757));
+    parkX.push_back(Global_State(2.147754669189453, -2.4914517402648926, -0.0));
+    parkX.push_back(Global_State(-3.0147714614868164, 11.42355728149414, -3.1415891914803757));
+    parkX.push_back(Global_State(19.509239196777344, -2.4841694831848145, -3.1415891914803757));
+    parkX.push_back(Global_State(19.509248733520508, -5.257540702819824, -3.1415891914803757));
+    parkX.push_back(Global_State(19.509248733520508, -8.036258697509766, -3.1415891914803757));
+    parkX.push_back(Global_State(19.509233474731445, -10.819997787475586, -3.1415891914803757));
+    parkX.push_back(Global_State(19.509220123291016, -13.610236167907715, -3.1415891914803757));
+    parkX.push_back(Global_State(19.509258270263672, 0.29378244280815125, -3.1415891914803757));
+    parkX.push_back(Global_State(19.50931739807129, 3.0713627338409424, -3.1415891914803757));
+    parkX.push_back(Global_State(19.50931739807129, 5.860528945922852, -3.1415891914803757));
+    parkX.push_back(Global_State(19.50931739807129, 8.617734909057617, -3.1415891914803757));
+    parkX.push_back(Global_State(2.1477136611938477, -5.269044876098633, -0.0));
+    parkX.push_back(Global_State(19.50931739807129, 11.42361831665039, -3.1415891914803757));
+    parkX.push_back(Global_State(7.5478339195251465, 31.41176414489746, -1.57078873678579));
+    parkX.push_back(Global_State(10.321207046508789, 31.41177749633789, -1.57078873678579));
+    parkX.push_back(Global_State(13.09992790222168, 31.411773681640625, -1.57078873678579));
+    parkX.push_back(Global_State(15.883647918701172, 31.411766052246094, -1.57078873678579));
+    parkX.push_back(Global_State(18.673912048339844, 31.411752700805664, -1.57078873678579));
+    parkX.push_back(Global_State(4.769878387451172, 31.411779403686523, -1.57078873678579));
+    parkX.push_back(Global_State(1.9922960996627808, 31.411842346191406, -1.57078873678579));
+    parkX.push_back(Global_State(-0.7968673706054688, 31.411840438842773, -1.57078873678579));
+    parkX.push_back(Global_State(-3.5540740489959717, 31.41183853149414, -1.57078873678579));
+    parkX.push_back(Global_State(2.147712469100952, -8.058197021484375, -0.0));
+    parkX.push_back(Global_State(-6.359940528869629, 31.411834716796875, -1.57078873678579));
+    parkX.push_back(Global_State(-33.7070198059082, 31.042797088623047, -1.57078873678579));
+    parkX.push_back(Global_State(-30.933645248413086, 31.04281234741211, -1.57078873678579));
+    parkX.push_back(Global_State(-28.15492820739746, 31.04280662536621, -1.57078873678579));
+    parkX.push_back(Global_State(-25.37120819091797, 31.042802810668945, -1.57078873678579));
+    parkX.push_back(Global_State(-22.580942153930664, 31.042787551879883, -1.57078873678579));
+    parkX.push_back(Global_State(-36.48496627807617, 31.04281234741211, -1.57078873678579));
+    parkX.push_back(Global_State(-39.26255416870117, 31.042875289916992, -1.57078873678579));
+    parkX.push_back(Global_State(-42.05170822143555, 31.042875289916992, -1.57078873678579));
+    parkX.push_back(Global_State(-44.80891036987305, 31.042869567871094, -1.57078873678579));
+    parkX.push_back(Global_State(2.1477112770080566, -10.815409660339355, -0.0));
+    parkX.push_back(Global_State(2.147777795791626, 0.28649425506591797, -0.0));
 }
 
 void parking::emptylots(vector<int> lots)
@@ -873,9 +883,10 @@ int main()
 
     // Global_State startS = Global_State(-44.81,-31.04,PI/4);
     // Global_State goalS = Global_State(-13.5, -31.04, 3*PI/4);
-    Global_State startS = Global_State(-30, 15, PI/4);
+    Global_State startS = Global_State(-10, 22, 0);
     // Global_State goalS = Global_State(15, 15, 0);   //0.40,-31.27,0);
-    Global_State goalS = Global_State(-54.12901306152344,-2.4843921661376953,PI);
+    Global_State goalS = Global_State(-54.12901306152344,-2.4843921661376953,0);        //{44}
+    // Global_State goalS = Global_State(-48.98691177368164,-2.491468906402588,PI);      // {38}
 
     GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car, dx, dy);
 
@@ -887,7 +898,18 @@ int main()
     // instantanting the occupance grid...........
     OccGrid occ(dx, dy);
     occ.generate_static_occ(parkV);
-    occ.update_static_occ({44}, 0); // Setting parking lot as empty
+    // occ.update_static_occ({38}, 0); // Setting parking lot as empty
+    occ.occ_map_publish("occupancy.csv");
+
+    // ---------Checking if the goal state is empty----------------------
+    vector <int> ind = g_planner.xy2i(goalS);
+    if(occ.isEmpty(ind[0], ind[1]))
+        cout<<"Vehicle can be parked at the goal state \n";
+    else
+    {
+        cout<<"Vehicle cannot be parked at the goal stare, Exiting........\n";
+        return 0;
+    }
 
     // g_planner.motion_primitive_writer(g_planner.startS_primitives(), "startS.csv");
     // vector <MotionPrimitive> pp = g_planner.transform_primitive(goalS);
@@ -897,9 +919,9 @@ int main()
     // g_planner.print_primitives(pp);
 
     // Searching for path to the goal...................................... 
-    vehicle_path = g_planner.A_star(startS, goalS ,occ);
-    print_path(vehicle_path);
-    g_planner.publish_path(vehicle_path, "waypoints.csv");
+    // vehicle_path = g_planner.A_star(startS, goalS ,occ);
+    // print_path(vehicle_path);
+    // g_planner.publish_path(vehicle_path, "waypoints.csv");
     
     cout<<" Time taken for computation : "<<(double)(clock() - start_t)/CLOCKS_PER_SEC<<" s"<<endl;
     

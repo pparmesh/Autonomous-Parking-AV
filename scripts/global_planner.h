@@ -123,7 +123,7 @@ class OccGrid
         vector<int> xy2i(vector<double> xy);
         void update_static_occ(vector <int> veh_i, int full);
         vector<vector<int>> get_occmap();
-
+        void occ_map_publish(string file_name);
 
 };
 // --------___________-------------___________------_______________----_____----
