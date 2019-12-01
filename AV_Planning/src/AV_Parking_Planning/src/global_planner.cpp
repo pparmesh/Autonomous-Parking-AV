@@ -31,7 +31,7 @@ Global_State MotionPrimitive::next_state()
 // -----------------------------------------------------------------------------------------------------------------------------------------
 
 GlobalPlanner::GlobalPlanner(Global_State st_state, Global_State g_state, double max_str_angle, double delt,
-double desire_vel, double car_len)
+double desire_vel, double car_len, double ddx, double ddy)
 {
     start_state = st_state;
     goal_state = g_state;
@@ -39,6 +39,8 @@ double desire_vel, double car_len)
     dt = delt;
     desired_velocity = desire_vel;
     car_length= car_len;
+    dx = ddx;
+    dy = ddy;
 }
 
 void GlobalPlanner::generate_motion_primitives()
@@ -55,8 +57,10 @@ void GlobalPlanner::generate_motion_primitives()
     double f_Vx = 2;
     double x = st_0.x;
     double y = st_0.y;
+    double x0 = st_0.x;
+    double y0 = st_0.y;
     double theta = st_0.theta;
-    double d_delta = 0.15;  // steering angle discretization in radians 
+    double d_delta = 0.1;  // steering angle discretization in radians 
    
     vector<double> deltaF;
     for(double d=-d_delta;d>=-max_steering_angle;d-=d_delta)
@@ -66,11 +70,8 @@ void GlobalPlanner::generate_motion_primitives()
         deltaF.push_back(d);
     
     //  Backward direction..........
-        double b_Vx = 1.2;
-    x = st_0.x;
-    y = st_0.y;
-    theta = st_0.theta;
-    d_delta = 0.22;
+    double b_Vx = -1.2;    
+    d_delta = 0.2;
 
     vector <double> deltaB;
     for(double d =-d_delta;d>=-max_steering_angle;d-=d_delta)
@@ -79,11 +80,12 @@ void GlobalPlanner::generate_motion_primitives()
     for(double d=d_delta;d<= max_steering_angle; d+=d_delta)
         deltaB.push_back(d);
 
+    // cout<<deltaF.size()<<" "<<deltaB.size()<<" sizes"<<endl;
     // // Resizing the primitive_M Eigen matrix 
     // primitive_M = MatrixXd(3, 400);// num_steps*(deltaF.size() + deltaB.size()));
     
     //  Computing and storing the motion primitives......... 
-    for(int jj=0;jj<2;++jj)
+    for(int jj=0;jj<1;++jj)
     {
         if(jj==0)
             nsteps = num_stepsL-1;
@@ -94,8 +96,12 @@ void GlobalPlanner::generate_motion_primitives()
         for(double d_del : deltaF)
         {
             MotionPrimitive p;
+            x = st_0.x;
+            y = st_0.y;
+            theta = st_0.theta;
             p.insert_state(st_0);
-            primitive_M.col(m) << st_0.x, st_0.y, st_0.theta;
+            primitive_M.col(m) << x-x0, y-y0, 1.0;  //theta;
+            thetas.push_back(theta);
             ++m;
             for(int i = 0; i < nsteps; ++i)
             {
@@ -105,7 +111,8 @@ void GlobalPlanner::generate_motion_primitives()
                 p.insert_state(Global_State(x, y, theta));
                 
                 //  Adding the motion primitives to the matrix
-                primitive_M.col(m) << x, y, theta;
+                primitive_M.col(m) << x-x0, y-y0, 1.0;  //theta;
+                thetas.push_back(theta);
                 ++m;
                 
             }
@@ -118,8 +125,12 @@ void GlobalPlanner::generate_motion_primitives()
         for(double d_del :  deltaB)
         {
             MotionPrimitive p;
+            x = st_0.x;
+            y = st_0.y;
+            theta = st_0.theta;
             p.insert_state(st_0);
-            primitive_M.col(m) <<st_0.x, st_0.y, st_0.theta;
+            primitive_M.col(m) <<x-x0, y-y0, 1.0; //theta;
+            thetas.push_back(theta);
             ++m;
             for(int i=0; i<nsteps; i++)
             {
@@ -129,7 +140,8 @@ void GlobalPlanner::generate_motion_primitives()
                 p.insert_state(Global_State(x, y, theta));
 
                 //  Adding the motion primitives to the matrix
-                primitive_M.col(m) << x ,y, theta;
+                primitive_M.col(m) << x-x0 ,y-y0, 1.0;  //theta;
+                thetas.push_back(theta);
                 ++m;
             }
             motion_primitives.push_back(p);
@@ -138,7 +150,7 @@ void GlobalPlanner::generate_motion_primitives()
         }
     }    
     PrecomputeCost(deltaF, deltaB);
-
+    // cout<<"f: "<<deltaF.size()<<" , B: "<<deltaB.size()<<endl;
     // //  Priniting the motion primitives and cost:::
     // vector <double> st_ang;
     // for(double f : deltaF)
@@ -154,11 +166,21 @@ void GlobalPlanner::PrecomputeCost(vector<double> steerF, vector<double> steerB)
 {
     // Function to pre-compute the cost for different motion patterns weighed on curvature, forward/reverse.
     double cost;
-    for(int jj=0;jj<2;++jj)
+    int nsteps;
+    for(int jj=0;jj<1;++jj)
     {
+        if(jj==0)
+            nsteps = num_stepsL;
+        else
+            nsteps = num_stepsS;
+
         for(double delta : steerF)
         {
-            cost = abs(delta)*180/PI;
+            if(delta == 0)
+                cost = 1;   //nsteps;
+            else
+                cost = 2*abs(delta); 
+            // cost = abs(delta)*180/PI;
             cost_of_motion.push_back(cost);   
         }
 
@@ -166,9 +188,9 @@ void GlobalPlanner::PrecomputeCost(vector<double> steerF, vector<double> steerB)
         for(double delta : steerB)
         {
             if(delta == 0)
-                cost = 4;
+                cost = 2*5;
             else
-                cost = 4*abs(delta)*180/PI;     // Setting the cost of backward motion = 2*cost of forward with same steering angle
+                cost = 5*abs(delta);     // Setting the cost of backward motion = 2*cost of forward with same steering angle
             cost_of_motion.push_back(cost);
         }
     }
@@ -178,62 +200,248 @@ void GlobalPlanner::PrecomputeCost(vector<double> steerF, vector<double> steerB)
 double GlobalPlanner::computeEucH(Global_State st)
 {
     // Euclidean between current state [x,y,theta] and the goal state [x,y,theta]
-    double h =sqrt((st.x-goal_state.x)*(st.x-goal_state.x) + (st.y-goal_state.y)*(st.y-goal_state.y) + (st.theta-goal_state.theta)*(st.theta-goal_state.theta));
-
+    // double h =sqrt((st.x-goal_state.x)*(st.x-goal_state.x) + (st.y-goal_state.y)*(st.y-goal_state.y) + (st.theta-goal_state.theta)*(st.theta-goal_state.theta));
+    double h =0;
     return h;
 }
 
-double GlobalPlanner::compute2DH(Global_State st)
+string GlobalPlanner::stateHash2D(int sx, int sy)
+{
+    string stg = "";
+    stg += to_string(sx) + to_string(sy);
+
+    return stg;
+}
+
+// ------3D Heuristics---------
+void GlobalPlanner::pre_compute3DH(Global_State st)
+{
+    unordered_map <string, bool> p_close;
+    string qS = get_state_hash(st);
+    string qG = get_state_hash(goal_state);
+    p_close[qS] = false;
+    p_close[qG] = false;
+
+    hmap[qS] = GNode(start_state, "-1", 0, 0, 0, motion_primitives[0]);
+
+    set<f_COORDINATE> p_open;
+    p_open.insert(make_pair(0.0, qS));
+
+    while(!p_open.empty() && !p_close[qG])
+    {
+        // Popping the top state of priority queue
+        f_COORDINATE q = *p_open.begin();
+        p_open.erase(p_open.begin());
+
+        Global_State qc = hmap[q.second].state;
+        string curr_state = get_state_hash(qc);
+        
+        //  Checking if the state has already been exapanded.......
+        if((p_close.find(curr_state) != p_close.end()) && p_close[curr_state])
+            continue;   // checking if the state has already been expanded
+
+        // Checking if goal reached
+        if(isGoalState(qc))
+        {
+            p_close[qG] = true;
+            return;
+        }
+        p_close[curr_state] = true;
+
+        vector <MotionPrimitive> actions = transform_primitive(qc);
+        for(int p=0; p<actions.size(); ++p)
+        {
+            MotionPrimitive action = actions[p];
+            // Checking if the action is valid at the current state
+            if( !is_valid_primitive(action))
+                continue;
+
+            Global_State q_new = action.next_state();
+
+            double gNew;
+            string new_state = get_state_hash(q_new);
+
+            if(p_close[new_state])
+                continue;   // skipping if the state has already been expanded
+            double cost = cost_of_motion[p];
+
+            if(hmap.find(new_state) == hmap.end())
+                hmap[new_state] = GNode(q_new, curr_state, DBL_MAX, DBL_MAX, DBL_MAX, motion_primitives[0]);
+
+            if(hmap[new_state].g > (cost + hmap[curr_state].g))
+            {
+                gNew = hmap[curr_state].g + cost;
+                hmap[new_state] = GNode(q_new, curr_state, gNew, gNew, gNew, action);
+                p_open.insert(make_pair(gNew, new_state));
+
+            }
+
+        }
+
+    }
+    cout<<p_open.size()<<endl;
+    cout<<p_close[qG]<<endl;
+}
+
+double GlobalPlanner::compute3DH(Global_State st)
+{
+    string qst = get_state_hash(st);
+    if(hmap.find(qst) == hmap.end())
+        pre_compute3DH(st);
+    return hmap[qst].g;
+}
+// ------------Heuristics-------
+double GlobalPlanner::computeH(Global_State st, OccGrid occupancy)
+{
+    double h1, h2;
+    h1 = compute2DH(st, occupancy);
+    h2 = compute3DH(st);
+    cout<<h1<<" "<<h2<<endl;
+    return max(h1, h2);
+}
+
+// ------2D Heuristics---------
+double GlobalPlanner::compute2DH(Global_State st, OccGrid occupancy)
 {
     // Using a 2D robot in xy world to compute the heurisics
+    unordered_map <string, bool> p_close;
+    set<f_COORDINATE> p_open;
+    int dirs = 8;
+    double euH;
+
+    vector <int> startS = xy2i(st);
+    vector <int> goalS = xy2i(goal_state);
+    string startH = stateHash2D(startS[0], startS[1]);
+    string goalH = stateHash2D(goalS[0], goalS[1]);
+    p_close[startH] = false;
+    p_close[goalH] = false;
+
+    p_open.insert(make_pair(0.0, startH));
+
+    unordered_map<string, Node2D> imap;
+    imap[startH] = Node2D(startS[0], startS[1], "-1", 0);
+
+    p_open.insert(make_pair(0.0, startH));
+    int dX[dirs] = {-1, -1, -1, 0, 0, 1, 1, 1};
+    int dY[dirs] = {-1, 0, 1, -1, 1, -1, 0, 1};
+
+    int qx, qy;
+    while(!p_open.empty() && !p_close[goalH])
+    {
+        //  Popping the top node on the open list
+        f_COORDINATE q =*p_open.begin();
+        p_open.erase(p_open.begin());
+        qx = imap[q.second].xi;
+        qy = imap[q.second].yi;
+        string qH = stateHash2D(qx, qy);
+        if(p_close.find(qH)!=p_close.end() && p_close[qH])
+            continue;       // skipping if the state already in closed list
+        
+        if(qH == goalH)
+        {
+            // cout<<"goal reached"<<endl;
+            p_close[goalH]=true;
+            break;
+        }
+
+        for(int i=0; i<dirs;++i)
+        {
+            int newX = qx + dX[i];
+            int newY = qy + dY[i];
+            string q_newH = stateHash2D(newX, newY);
+
+            if(p_close[q_newH])
+                continue;   //skipping if q_new in closed list already
+
+            if(newX>=0 && newX<mapX && newY>=0 && newY<mapY)
+            {
+                if(!occupancy.isEmpty(newX, newY))
+                { 
+                    continue;   // skipping if there is an obstacle at the (x,y) location
+                }
+                if(imap.find(q_newH) == imap.end())
+                    imap[q_newH] = Node2D(newX, newY, qH, DBL_MAX);
+                euH = sqrt((newX-goalS[0])*(newX-goalS[0]) + (newY-goalS[1])*(newY-goalS[1]));
+
+                double gg = imap[qH].g +1;
+                if(imap[q_newH].g > gg)
+                {
+                    imap[q_newH] = Node2D(newX, newY, qH, gg);
+                    p_open.insert(make_pair(gg+euH, q_newH));
+                }
+            }
+        }
+    }
     
-    
+    if(!p_close[goalH])
+    {
+        cout<<" 2D heuristic could not find a path"<<endl;
+        return -1;
+    }
+    // int h=0;
+    // while(goalH != startH)
+    // {
+    //     ++h;
+    //     goalH = imap[goalH].p;
+    // }
+    // return h;
+    return imap[goalH].g;
 }
 
 vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
 {
-    // Function to transform (tranlate and rotate) the initial motion primitives to the current vehicle state
-    double d_x = n_st.x - start_state.x;
-    double d_y = n_st.y - start_state.y;
+    // Computing the relative transformation (rotation and translation) between the two motion primitive frames.
+    double dx = n_st.x - start_state.x;
+    double dy = n_st.y - start_state.y;
     double dtheta = n_st.theta - start_state.theta;
-    int num_steps;
+
     // Formulating the transformation matrix
     Matrix<double, 3, 3> M;
-    M << cos(dtheta), -sin(dtheta), d_x,
-        sin(dtheta), cos(dtheta), d_y,
-        0, 0, 1;
+    M << cos(dtheta), -sin(dtheta), start_state.x,
+        sin(dtheta), cos(dtheta), start_state.y,
+        0, 0, 1; 
 
-    Matrix<double, 3, (num_stepsL+num_stepsS)*(15+9)> n_p = M*primitive_M;
+    // Transforming the frame of reference of the motion primitives
+    const int nmp =21+11;
+    Matrix<double, 3, (num_stepsL+num_stepsS)*(nmp)> n_p = M*primitive_M;
     
     // Converting the matrix to vector of motion primitives
     vector<MotionPrimitive> imap;
-
     MotionPrimitive p;
-    for(int jj=0;jj<2;++jj)
-    {
-        if(jj==0)
-            num_steps = num_stepsL-1;
-        else
-            num_steps = num_stepsS-1;
 
-        for(int i=0; i<n_p.cols();++i)
+    // motion primitives with 9 steps
+    int nsteps = num_stepsL;
+    int mi;
+    for(mi=0;mi<(nsteps*(nmp));++mi)
+    {
+        p.insert_state(Global_State(n_p.col(mi)[0]+dx, n_p.col(mi)[1]+dy, wrap2pi(thetas[mi]+dtheta)));
+        if((mi+1)%nsteps == 0)
         {
-            p.insert_state(Global_State(n_p.col(i)[0], n_p.col(i)[1], n_p.col(i)[2]+dtheta));
-            if((i+1)%num_steps == 0)
-            {
-                MotionPrimitive p_new(p);
-                imap.push_back(p_new);
-                p.clear_primitives();
-            }
+            MotionPrimitive p_new(p);
+            imap.push_back(p_new);
+            p.clear_primitives();
         }
     }
+    // Motion Primitives with 5 steps
+    // nsteps = num_stepsS;
+    // int li=1;
+    // for( ;mi <n_p.cols();++mi)
+    // {
+    //     p.insert_state(Global_State(n_p.col(mi)[0]+dx, n_p.col(mi)[1]+dy, thetas[mi]+dtheta));
+    //     if(li%nsteps == 0)
+    //     {
+    //         MotionPrimitive p_new(p);
+    //         imap.push_back(p_new);
+    //         p.clear_primitives();
+    //     }
+    //     ++li;
+    // }
     return imap;
 }
 
 vector<int> GlobalPlanner::xy2i(Global_State state)
 {
     //Function to conver the parking lot spatial location to occupancy grid indices
-    double dx = 0.1, dy = 0.1; 
     int ax = floor((state.x - xlim[0])/dx);
     int ay = floor((state.y - ylim[0])/dy);
     vector <int> pi {ax, ay};
@@ -246,13 +454,26 @@ string GlobalPlanner::get_state_hash(Global_State state)
     vector<int> ind = xy2i(state);
     string st_hash = "";
     string g = to_string(state.theta);
-    st_hash += to_string(ind[0]) + to_string(ind[1]) + g.substr(0.4); 
+    st_hash += to_string(ind[0]) +","+ to_string(ind[1]) +","+ g.substr(0,4); 
     return st_hash;
 }
 
-bool GlobalPlanner::CollisionCheck(MotionPrimitive motion)
+bool GlobalPlanner::CollisionCheck(MotionPrimitive motion, OccGrid ocmap)
 {
-    return 1;
+    // Function to check if the motion primitive path is collision free.
+    // 0: Collision free, 1: Collision
+
+    // Collision check for a point robot.
+    vector <Global_State> m_step = motion.get_primitive();
+    for(Global_State stg : m_step)
+    {
+        vector <int> index = xy2i(stg);
+        if(ocmap.isEmpty(index[0], index[1]))
+            continue;
+        else
+            return 1;
+    }
+    return 0;
 }
 
 bool GlobalPlanner::is_valid_primitive(MotionPrimitive motion)
@@ -263,9 +484,9 @@ bool GlobalPlanner::is_valid_primitive(MotionPrimitive motion)
     vector<Global_State> m_step = motion.get_primitive();
     //  Checking for out of bounds.......................
     
-    for(Global_State st : m_step)
+    for(Global_State stg : m_step)
     {
-        vector<int> ind = xy2i(st);
+        vector<int> ind = xy2i(stg);
         int x = ind[0];
         int y = ind[1];
         if(x<0 || x>=mapX || y<0 || y>=mapY)
@@ -280,7 +501,7 @@ bool GlobalPlanner::isGoalState(Global_State st)
 {
     // Function to check if the goal_state st can be considered as the goal state
     // Considering a euclidean distance < epsilon to check if goal found (Temporary)
-    double eps = 2;
+    double eps = 1;
     double diff = sqrt((st.x-goal_state.x)*(st.x-goal_state.x) + (st.y-goal_state.y)*(st.y-goal_state.y));// + (st.theta-goal_state.theta)*(st.theta-goal_state.theta));
     double d_thet = abs(st.theta-goal_state.theta);
     double dstr = PI/18;
@@ -296,18 +517,30 @@ vector<Global_State> GlobalPlanner::solutionPath(string goal)
 {
     vector< Global_State> waypoints;
     string curr_state = goal;
-    while (gmap[curr_state].parent!="-1")
+    while (true)
     {
         waypoints.insert(waypoints.begin(), gmap[curr_state].state);
-        curr_state = gmap[curr_state].parent;
+        // Storing the waypoints from the motion primitive action that led to the current state
+        vector<Global_State> actions = gmap[curr_state].ac.get_primitive();
+        if(gmap[curr_state].parent == "-1")
+            break;
+        else
+            curr_state = gmap[curr_state].parent;
+
+        // Adding the waypoints from the motion primitive.........
+        for(int i = actions.size()-1;i>=0;--i)
+            waypoints.insert(waypoints.begin(), actions[i]);
+        
     }
     return waypoints;
 }
 
-vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_State goal_state)
+vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_State goal_state, OccGrid ocmap)
 {
     vector<Global_State> path;
 
+    cout<<"start state: "<<start_state.x<<" "<<start_state.y<<" "<<start_state.theta<<endl;
+    cout<<"goal state: "<<goal_state.x<<" "<<goal_state.y<<" "<<goal_state.theta<<endl;
     // closed list to keep track of expanded nodes
     unordered_map <string, bool> closed_list;
     string start = get_state_hash(start_state);
@@ -320,7 +553,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
     
 
     // Inititalize the start cell. It has no parents and its f, g & h values are 0
-    gmap[start] = GNode(start_state, "-1", 0, 0, 0);    // start cell as its parent as itself
+    gmap[start] = GNode(start_state, "-1", 0, 0, 0, motion_primitives[0]);    // start cell as its parent as itself
     
 
     // Implement the open list to keep track of states to expand using a set
@@ -331,6 +564,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
 
     int mexp = 0;
     // Expand till open list is not empty
+    double wt = 2.4;    // weight for weighted heuristic
     while(!open_list.empty() && !closed_list[goal])
     {   
         // Pick index with lowest f value from open list. Set will help in doing this as it is ordered.
@@ -339,8 +573,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
         // If they are not in closed list, find their f-values. If they are in the open list with a larger
         // f-value then update it, otherwise add this index to the open list. 
         // Loop till goal state has not been expanded.
-
-        if(mexp > 20000)
+        if(mexp > 3000)
             break;
         ++mexp;
         // Get index from openlist. Pop the first value from the open list.
@@ -372,7 +605,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
             gmap[goal].state = goal_state;
             break;
         }
-
+        cout<<"open list size: "<<open_list.size()<<" "<<q_current.x<<" "<<q_current.y<<" "<<q_current.theta<<endl;
 
         // Pushing the state into current state
         closed_list[curr_state] = true; 
@@ -384,9 +617,12 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
             MotionPrimitive step = actions[mp_i];
             // Check if motion pattern is valid
             if(! is_valid_primitive(step))
+            {   
+                // Global_State sfg = step.next_state();
+                // cout<<"not valid: "<<sfg.x<<" ,"<<sfg.y<<endl;
                 continue;
-            
-            if(! CollisionCheck(step))  // Checking for collision
+            }
+            if(CollisionCheck(step, ocmap))  // Checking for collision
                 continue;
             
 
@@ -400,16 +636,20 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
                 continue;   // Skipping if the state is already in the closed list.
 
             double cost = cost_of_motion[mp_i];
-            hNew = computeEucH(q_new);
-            
+            // hNew = computeH(q_new, ocmap);
+            hNew = compute2DH(q_new, ocmap);
+            if(hNew == -1)  // skipping the state if 2D heuristic couldn't find path to goal-state
+                continue;
+            else
+                hNew = hNew * wt;
             if(gmap.find(new_state) == gmap.end())
-                gmap[new_state] = GNode(q_new, curr_state, DBL_MAX, DBL_MAX, DBL_MAX);
+                gmap[new_state] = GNode(q_new, curr_state, DBL_MAX, DBL_MAX, DBL_MAX, step);
 
-            if(gmap[new_state].g > gmap[curr_state].g + cost)
+            if(gmap[new_state].g > (gmap[curr_state].g + cost))
             {
-                gNew = gmap[curr_state].g;
+                gNew = gmap[curr_state].g + cost;
                 fNew = gNew + hNew;
-                gmap[new_state] = GNode(q_new, curr_state, fNew, gNew, hNew);
+                gmap[new_state] = GNode(q_new, curr_state, fNew, gNew, hNew, step);
                 open_list.insert(make_pair(fNew, new_state));
             }         
         }    
@@ -424,6 +664,294 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
     }
     return path;
 }
+
+void GlobalPlanner::print_primitives(vector<MotionPrimitive> mpd)
+{
+    for(int i=0;i< mpd.size(); ++i)
+    {
+        MotionPrimitive j=mpd[i];
+        cout<<"------------------------------\n";
+        vector<Global_State> jp = j.get_primitive();
+        for(Global_State o : jp)
+            cout<<"["<<o.x<<","<<o.y<<","<<o.theta<<"],"<<endl;
+        cout<<" Cost= "<<cost_of_motion[i]<<endl;
+    }
+}
+
+
+void GlobalPlanner::motion_primitive_writer(vector<MotionPrimitive> mpd, string file_name)
+{
+    // Converting the vector of MotionPrimitives into a 2d Vector.
+    vector< vector<double>> pmap (9, vector<double> {0});
+    for(MotionPrimitive m : mpd)
+    {
+        vector<Global_State> mj = m.get_primitive();
+        if (mj.size() < 8)
+            continue;       // ignoring the motion primitives with the 8 steps curently
+        for(int e=0;e<mj.size();++e)
+        {
+            pmap[e].push_back(mj[e].x);
+            pmap[e].push_back(mj[e].y);
+            pmap[e].push_back(mj[e].theta);
+        }
+    }
+
+    // Writing the motion primitive 2d vector to a csv file
+    ofstream ffr (file_name);
+    for(int p =0;p<pmap.size();++p)
+    {
+        for(int q=1;q<pmap[p].size();++q)
+            ffr<<pmap[p][q]<<", ";
+        ffr<<endl;
+    }
+    ffr.close();    
+
+}
+
+void GlobalPlanner::publish_path(vector<Global_State> path, string file_name)
+{
+    ofstream ffr (file_name);
+    for(Global_State sf : path)
+        ffr<<sf.x<<", "<<sf.y<<", "<<sf.theta<<endl;
+    ffr.close();
+}
+
+vector<MotionPrimitive> GlobalPlanner::startS_primitives()
+{
+    return motion_primitives;
+}
+
+// -----------------------------------------------------------------------------------------------------------------------------------------------
+void OccGrid::generate_static_occ(parking box)
+{
+    //  Function to pre_compute the static occupancy grid from the parked vehicles in the frame
+    vector<Global_State> v_loc = box.get_locs();
+    vector<int> v_states = box.parking_state();
+
+    for(int i=0; i<v_states.size();++i)
+    {
+        if(v_states[i]==0)  // parking box empty
+            continue;
+        vector<double> pl_xy = pBoxlim(v_loc[i]); 
+        vector<int> obstacles = xy2i(pl_xy);
+        // cout<<"("<<obstacles[0]<<","<<obstacles[2]<<"); ("<<obstacles[1]<<","<<obstacles[3]<<") \n";
+        update_static_occ(obstacles, 1);
+    }
+
+}
+
+
+void OccGrid::update_static_occ(vector<int> veh_i, int full)
+{
+    //  Function to update the occupancy grid values for the indices in vehXY
+    // limits: (veh_i[0], vehh_i[2]) ; (veh_i[1], veh_h[3])
+    for(int m=veh_i[0]; m<=veh_i[2]; ++m)
+    {
+        for(int n=veh_i[1]; n<=veh_i[3]; ++n)
+            occ_map[m][n] = full;
+    }
+}
+
+vector<double> OccGrid::pBoxlim(Global_State ploc)
+{
+    // Function to compute the parking box limits [x,y] 
+    double x = ploc.x;
+    double y = ploc.y;
+    double thet = abs(ploc.theta);
+    vector<double> xy;
+    if(thet>=3.14)
+        thet = 0;
+    xy.push_back(x - cos(thet)*(l/2) - sin(thet)*(w/2));
+    xy.push_back(x + cos(thet)*(l/2) + sin(thet)*(w/2));
+    xy.push_back(y - cos(thet)*(w/2) - sin(thet)*(l/2));
+    xy.push_back(y + cos(thet)*(w/2) + sin(thet)*(l/2));
+    return xy;
+}
+
+vector<int> OccGrid::xy2i(vector<double> xy)
+{
+    vector<int> ind;
+    ind.push_back(floor((xy[0] - xlim[0])/dx));
+    ind.push_back(floor((xy[2] - ylim[0])/dy));
+    ind.push_back(ceil((xy[1] - xlim[0])/dx));
+    ind.push_back(ceil((xy[3] - ylim[0])/dy));
+    return ind;
+}
+
+bool OccGrid::isEmpty(int xi, int yi)
+{
+    // returns 1 if the location (xi,yi) is empty; 0 otherwise.
+    return !occ_map[xi][yi];       
+}
+
+vector<vector<int>> OccGrid::get_occmap()
+{
+    return occ_map;
+}
+
+void OccGrid::occ_map_publish(string file_name)
+{
+    ofstream ffr (file_name);
+    for(int o=0; o<occ_map.size();++o)
+    {
+        for(int og : occ_map[o])
+            ffr<<og<<" ,";
+        ffr<<endl;
+    }
+}
+
+// -----------------------------------------------------------------------------------------------------------------------
+
+parking::parking()
+{
+    // Storing the prking box locations................
+    parkX.push_back(Global_State(-47.61477279663086, 31.042869567871094, -1.57078873678579));
+    parkX.push_back(Global_State(-13.505621910095215, -31.273136138916016, 1.5708025852234582));
+    parkX.push_back(Global_State(-16.27899932861328, -31.273151397705078, 1.5708025852234582));
+    parkX.push_back(Global_State(-19.057735443115234, -31.27314567565918, 1.5708025852234582));
+    parkX.push_back(Global_State(-21.841434478759766, -31.27312660217285, 1.5708025852234582));
+    parkX.push_back(Global_State(-24.631704330444336, -31.273109436035156, 1.5708025852234582));
+    parkX.push_back(Global_State(-10.727664947509766, -31.273151397705078, 1.5708025852234582));
+    parkX.push_back(Global_State(-7.950075626373291, -31.27320671081543, 1.5708025852234582));
+    parkX.push_back(Global_State(-5.160816669464111, -31.273231506347656, 1.5708025852234582));
+    parkX.push_back(Global_State(-2.4036195278167725, -31.273216247558594, 1.5708025852234582));
+    parkX.push_back(Global_State(2.1477136611938477, -13.62131118774414, -0.0));
+    parkX.push_back(Global_State(0.4022550880908966, -31.27322006225586, 1.5708025852234582));
+    parkX.push_back(Global_State(24.663219451904297, 0.28649184107780457, -0.0));
+    parkX.push_back(Global_State(24.663219451904297, 3.059866189956665, -0.0));
+    parkX.push_back(Global_State(24.663219451904297, 5.83858585357666, -0.0));
+    parkX.push_back(Global_State(24.663219451904297, 8.622309684753418, -0.0));
+    parkX.push_back(Global_State(24.663219451904297, 11.412550926208496, -0.0));
+    parkX.push_back(Global_State(24.66319465637207, -2.4914541244506836, -0.0));
+    parkX.push_back(Global_State(24.663150787353516, -5.269047260284424, -0.0));
+    parkX.push_back(Global_State(24.663150787353516, -8.058199882507324, -0.0));
+    parkX.push_back(Global_State(24.663150787353516, -10.815412521362305, -0.0));
+    parkX.push_back(Global_State(24.663150787353516, -13.621313095092773, -0.0));
+    parkX.push_back(Global_State(-23.06333351135254, 0.28649425506591797, -0.0));
+    parkX.push_back(Global_State(-23.06333351135254, 3.059868812561035, -0.0));
+    parkX.push_back(Global_State(-23.06333351135254, 5.838588237762451, -0.0));
+    parkX.push_back(Global_State(-23.06333351135254, 8.622312545776367, -0.0));
+    parkX.push_back(Global_State(-23.06333351135254, 11.412553787231445, -0.0));
+    parkX.push_back(Global_State(-23.063358306884766, -2.4914517402648926, -0.0));
+    parkX.push_back(Global_State(-23.063398361206055, -5.269044876098633, -0.0));
+    parkX.push_back(Global_State(-23.06340217590332, -8.058197021484375, -0.0));
+    parkX.push_back(Global_State(-23.06340217590332, -10.815409660339355, -0.0));
+    parkX.push_back(Global_State(2.147777795791626, 3.059868812561035, -0.0));
+    parkX.push_back(Global_State(-23.063398361206055, -13.62131118774414, -0.0));
+    parkX.push_back(Global_State(-48.98688888549805, 0.2864780128002167, -0.0));
+    parkX.push_back(Global_State(-48.98688888549805, 3.0598528385162354, -0.0));
+    parkX.push_back(Global_State(-48.98688888549805, 5.838579177856445, -0.0));
+    parkX.push_back(Global_State(-48.98688888549805, 8.622303009033203, -0.0));
+    parkX.push_back(Global_State(-48.98688888549805, 11.412550926208496, -0.0));
+    parkX.push_back(Global_State(-48.98691177368164, -2.491468906402588, -0.0));
+    parkX.push_back(Global_State(-48.98695373535156, -5.269053936004639, -0.0));
+    parkX.push_back(Global_State(-48.98695755004883, -8.058206558227539, -0.0));
+    parkX.push_back(Global_State(-48.98695755004883, -10.815412521362305, -0.0));
+    parkX.push_back(Global_State(2.147777795791626, 5.838588237762451, -0.0));
+    parkX.push_back(Global_State(-48.98695373535156, -13.621313095092773, -0.0));
+    parkX.push_back(Global_State(-54.12901306152344, -2.4843921661376953, -3.1415891914803757));
+    parkX.push_back(Global_State(-54.12900161743164, -5.257752418518066, -3.1415891914803757));
+    parkX.push_back(Global_State(-54.12900161743164, -8.036470413208008, -3.1415891914803757));
+    parkX.push_back(Global_State(-54.1290168762207, -10.820185661315918, -3.1415891914803757));
+    parkX.push_back(Global_State(-54.129032135009766, -13.61042308807373, -3.1415891914803757));
+    parkX.push_back(Global_State(-54.12899398803711, 0.2935601472854614, -3.1415891914803757));
+    parkX.push_back(Global_State(-54.12893295288086, 3.071143627166748, -3.1415891914803757));
+    parkX.push_back(Global_State(-54.12893295288086, 5.860317230224609, -3.1415891914803757));
+    parkX.push_back(Global_State(-54.12893295288086, 8.617523193359375, -3.1415891914803757));
+    parkX.push_back(Global_State(2.147777795791626, 8.622312545776367, -0.0));
+    parkX.push_back(Global_State(-54.12893295288086, 11.423429489135742, -3.1415891914803757));
+    parkX.push_back(Global_State(-28.20282745361328, -2.4843077659606934, -3.1415891914803757));
+    parkX.push_back(Global_State(-28.202816009521484, -5.257676124572754, -3.1415891914803757));
+    parkX.push_back(Global_State(-28.202816009521484, -8.036394119262695, -3.1415891914803757));
+    parkX.push_back(Global_State(-28.202831268310547, -10.820122718811035, -3.1415891914803757));
+    parkX.push_back(Global_State(-28.20284652709961, -13.61036205291748, -3.1415891914803757));
+    parkX.push_back(Global_State(-28.20280647277832, 0.293643981218338, -3.1415891914803757));
+    parkX.push_back(Global_State(-28.202749252319336, 3.0712268352508545, -3.1415891914803757));
+    parkX.push_back(Global_State(-28.202749252319336, 5.860393524169922, -3.1415891914803757));
+    parkX.push_back(Global_State(-28.202749252319336, 8.617599487304688, -3.1415891914803757));
+    parkX.push_back(Global_State(2.147777795791626, 11.412553787231445, -0.0));
+    parkX.push_back(Global_State(-28.202749252319336, 11.423492431640625, -3.1415891914803757));
+    parkX.push_back(Global_State(-3.0148494243621826, -2.4842357635498047, -3.1415891914803757));
+    parkX.push_back(Global_State(-3.0148396492004395, -5.25760555267334, -3.1415891914803757));
+    parkX.push_back(Global_State(-3.0148396492004395, -8.036323547363281, -3.1415891914803757));
+    parkX.push_back(Global_State(-3.0148544311523438, -10.820058822631836, -3.1415891914803757));
+    parkX.push_back(Global_State(-3.014868974685669, -13.610297203063965, -3.1415891914803757));
+    parkX.push_back(Global_State(-3.0148298740386963, 0.2937156558036804, -3.1415891914803757));
+    parkX.push_back(Global_State(-3.0147714614868164, 3.071298837661743, -3.1415891914803757));
+    parkX.push_back(Global_State(-3.0147714614868164, 5.860464572906494, -3.1415891914803757));
+    parkX.push_back(Global_State(-3.0147714614868164, 8.617670059204102, -3.1415891914803757));
+    parkX.push_back(Global_State(2.147754669189453, -2.4914517402648926, -0.0));
+    parkX.push_back(Global_State(-3.0147714614868164, 11.42355728149414, -3.1415891914803757));
+    parkX.push_back(Global_State(19.509239196777344, -2.4841694831848145, -3.1415891914803757));
+    parkX.push_back(Global_State(19.509248733520508, -5.257540702819824, -3.1415891914803757));
+    parkX.push_back(Global_State(19.509248733520508, -8.036258697509766, -3.1415891914803757));
+    parkX.push_back(Global_State(19.509233474731445, -10.819997787475586, -3.1415891914803757));
+    parkX.push_back(Global_State(19.509220123291016, -13.610236167907715, -3.1415891914803757));
+    parkX.push_back(Global_State(19.509258270263672, 0.29378244280815125, -3.1415891914803757));
+    parkX.push_back(Global_State(19.50931739807129, 3.0713627338409424, -3.1415891914803757));
+    parkX.push_back(Global_State(19.50931739807129, 5.860528945922852, -3.1415891914803757));
+    parkX.push_back(Global_State(19.50931739807129, 8.617734909057617, -3.1415891914803757));
+    parkX.push_back(Global_State(2.1477136611938477, -5.269044876098633, -0.0));
+    parkX.push_back(Global_State(19.50931739807129, 11.42361831665039, -3.1415891914803757));
+    parkX.push_back(Global_State(7.5478339195251465, 31.41176414489746, -1.57078873678579));
+    parkX.push_back(Global_State(10.321207046508789, 31.41177749633789, -1.57078873678579));
+    parkX.push_back(Global_State(13.09992790222168, 31.411773681640625, -1.57078873678579));
+    parkX.push_back(Global_State(15.883647918701172, 31.411766052246094, -1.57078873678579));
+    parkX.push_back(Global_State(18.673912048339844, 31.411752700805664, -1.57078873678579));
+    parkX.push_back(Global_State(4.769878387451172, 31.411779403686523, -1.57078873678579));
+    parkX.push_back(Global_State(1.9922960996627808, 31.411842346191406, -1.57078873678579));
+    parkX.push_back(Global_State(-0.7968673706054688, 31.411840438842773, -1.57078873678579));
+    parkX.push_back(Global_State(-3.5540740489959717, 31.41183853149414, -1.57078873678579));
+    parkX.push_back(Global_State(2.147712469100952, -8.058197021484375, -0.0));
+    parkX.push_back(Global_State(-6.359940528869629, 31.411834716796875, -1.57078873678579));
+    parkX.push_back(Global_State(-33.7070198059082, 31.042797088623047, -1.57078873678579));
+    parkX.push_back(Global_State(-30.933645248413086, 31.04281234741211, -1.57078873678579));
+    parkX.push_back(Global_State(-28.15492820739746, 31.04280662536621, -1.57078873678579));
+    parkX.push_back(Global_State(-25.37120819091797, 31.042802810668945, -1.57078873678579));
+    parkX.push_back(Global_State(-22.580942153930664, 31.042787551879883, -1.57078873678579));
+    parkX.push_back(Global_State(-36.48496627807617, 31.04281234741211, -1.57078873678579));
+    parkX.push_back(Global_State(-39.26255416870117, 31.042875289916992, -1.57078873678579));
+    parkX.push_back(Global_State(-42.05170822143555, 31.042875289916992, -1.57078873678579));
+    parkX.push_back(Global_State(-44.80891036987305, 31.042869567871094, -1.57078873678579));
+    parkX.push_back(Global_State(2.1477112770080566, -10.815409660339355, -0.0));
+    parkX.push_back(Global_State(2.147777795791626, 0.28649425506591797, -0.0));
+}
+
+void parking::emptylots(vector<int> lots)
+{
+    // Sets the lots with the given index to empty (available for parking)
+    for(int i : lots)
+        isfull[i] = 0;
+}
+
+vector<Global_State> parking::get_locs()
+{
+    return parkX;
+}
+
+Global_State parking::get_loc(int j)
+{
+    return parkX[j];
+}
+
+vector <int> parking::parking_state()
+{
+    return isfull;
+}
+
+bool parking::isAvailable(int j)
+{
+    return !isfull[j];
+}
+
+void parking::reserve_spot(vector <int> inds)
+{
+    // Function to set the parking spots with indices in "inds" as empty
+    for(int i : inds)
+        isfull[i] = 0;
+}
+
+// ------------------------------------------------------------------------------------------------
 
 void print_path(vector<Global_State> path)
 {
@@ -448,9 +976,14 @@ void print_path(vector<Global_State> path)
     cout<<endl;
 }
 
+// -------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------
+
 int main()
 {
-    double dx = 0.1 ,dy = 0.1;  // Grid discretization 
+    double dx = 0.2, dy = 0.2;     // Grid discretization
     double v_des = 1.2;     // Desrired Velocity
     double l_car = 2.2;     // Wheelbase of the vehicle
     double delT = 0.1;      // delta time of the simulation
@@ -458,19 +991,53 @@ int main()
 
     clock_t start_t = clock();
 
-    Global_State startS = Global_State(-44.81,-31.04,PI/2);
-    Global_State goalS = Global_State(-13.5, -31.27, PI/2);
-    // Global_State startS = Global_State(-48, 11.4, 0);
-    // Global_State goalS = Global_State(26, 11.4, 0);
+    // Global_State startS = Global_State(-50, -30, 0);
+    // Global_State goalS = Global_State(-13.5, -31.04, 3*PI/4);
+    Global_State startS = Global_State(-15, 30, 3*PI/2);
+    // Global_State goalS = Global_State(-3, -13.7, 0);   //0.40,-31.27,0);
+    Global_State goalS = Global_State(2.1477136611938477, -13.62131118774414, PI); //(-54.12901306152344,-2.4843921661376953,PI);        //{44}
+    // Global_State goalS = Global_State(-48.98691177368164,-2.491468906402588,PI);      // {38}
 
-    GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car);
+    GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car, dx, dy);
 
     vector<Global_State> vehicle_path;
     // Prcomputing the motion primitives
     g_planner.generate_motion_primitives();
-    vehicle_path = g_planner.A_star(startS, goalS);
 
-    cout<<" Time taken for computation : "<<(double)(clock() - start_t)/CLOCKS_PER_SEC<<" s"<<endl;
+    parking parkV;
+    parkV.reserve_spot({59, 48, 33, 38, 39,44, 70, 10}); // Setting parking lot as empty
+
+    // instantanting the occupance grid...........
+    OccGrid occ(dx, dy);
+    occ.generate_static_occ(parkV);
+    // occ.occ_map_publish("occupancy.csv");
+
+    // ---------Checking if the goal state is empty----------------------
+    vector <int> ind = g_planner.xy2i(goalS);
+    if(occ.isEmpty(ind[0], ind[1]))
+        cout<<"Vehicle can be parked at the goal state \n";
+    else
+    {
+        cout<<"Vehicle cannot be parked at the goal stare, Exiting........\n";
+        return 0;
+    }
+
+    // g_planner.motion_primitive_writer(g_planner.startS_primitives(), "startS.csv");
+    // vector <MotionPrimitive> pp = g_planner.transform_primitive(goalS);
+    // cout<<"+++\n+++++++++\n+++++++++"<<endl;
+    // g_planner.motion_primitive_writer(pp, "goalS.csv");
+    
+    // g_planner.print_primitives(pp);
+
+    //  Pre-Computing the 3D heuristic....
+    // g_planner.pre_compute3DH(startS);
+
+    // Searching for path to the goal...................................... 
+    vehicle_path = g_planner.A_star(startS, goalS ,occ);
     print_path(vehicle_path);
+    g_planner.publish_path(vehicle_path, "waypoints.csv");
+    
+    cout<<" Time taken for computation : "<<(double)(clock() - start_t)/CLOCKS_PER_SEC<<" s"<<endl;
+    
     return 0;
 }   

@@ -8,16 +8,27 @@
 #include <unordered_map>
 #include <set>
 #include <Eigen/Dense>
+#include <fstream>
 
-#define num_stepsL 9
-#define num_stepsS 4
+#define num_stepsL 12
+#define num_stepsS 0
 #define PI 3.141592654
-#define mapX 920    // xlim [-62, 30]
-#define mapY 800    // ylim [-40,  40]
+#define mapX 460    // xlim [-62, 30]
+#define mapY 400    // ylim [-40,  40]
 
 using namespace std;
 using namespace Eigen;
 
+
+double wrap2pi(double angle)
+{
+    // Function to wrap the angles between 0 and 2pi
+    angle = fmod(angle, 2*PI);
+    if(angle < 0)
+        angle+=2*PI;
+
+    return angle;
+}
 
 struct Global_State
 {
@@ -40,7 +51,7 @@ struct Global_State
     }
 };
 
-
+// ----------_________________----------------________________---------_____________---
 class MotionPrimitive
 {
     private:
@@ -72,6 +83,72 @@ class MotionPrimitive
         Global_State next_state();
 
 };
+// --------_________________-------------______________-----------------______---
+
+class parking
+{
+    private:
+        vector<Global_State> parkX;
+        vector<int> isfull = vector<int> (110, 1);
+    public:
+        parking();
+        void emptylots(vector<int> lots);
+        vector<Global_State> get_locs();
+        Global_State get_loc(int j);
+        vector<int> parking_state();
+        bool isAvailable(int j);
+        void reserve_spot(vector<int> inds);
+
+};
+
+// ----------_______________-------______________-----____________________-
+class OccGrid
+{
+    private:
+        double l = 5.142044059999996;   // Dimensions of each parking space
+        double w = 2.7572021484375;     // dimensions of each parking space
+        double xlim[2] = {-62, 30};
+        double ylim[2] = {-40, 40};
+        double dx = 0.2;
+        double dy = 0.2;
+        vector<vector<int>> occ_map = vector<vector<int>> (mapX, vector<int> (mapY,0));
+
+    public:
+        OccGrid(double ddx, double ddy)
+        {
+            dx = ddx;
+            dy = ddy;
+        }
+
+        void generate_static_occ(parking box);
+
+        // double check_occ(Global_State loc);
+
+        // bool collision_check(MotionPrimitive pattern);
+        
+
+        vector<double> pBoxlim(Global_State ploc);
+        
+        bool isEmpty(int xi, int yi);
+
+        vector<int> xy2i(vector<double> xy);
+        void update_static_occ(vector <int> veh_i, int full);
+        vector<vector<int>> get_occmap();
+        void occ_map_publish(string file_name);
+
+};
+// --------___________-------------___________------_______________----_____----
+
+struct Node2D
+{
+    int xi, yi;
+    string p;
+    double g;
+    Node2D(): xi(-1), yi(-1), p(""), g(DBL_MAX)
+    {}
+    Node2D(int a, int b, string par, double d): xi(a), yi(b), p(par), g(d)
+    {}
+};
 
 class GlobalPlanner
 {
@@ -79,6 +156,7 @@ class GlobalPlanner
         
         Global_State start_state;
         Global_State goal_state;
+
         struct GNode
         {
             Global_State state;
@@ -86,9 +164,10 @@ class GlobalPlanner
             double f;
             double g;
             double h;
-            GNode(): state(), parent(""), f(DBL_MAX), g(DBL_MAX), h(DBL_MAX)
+            MotionPrimitive ac;
+            GNode(): state(), parent(""), f(DBL_MAX), g(DBL_MAX), h(DBL_MAX), ac()
             {}
-            GNode(const Global_State& st, string p, double a, double b, double c): state(st), parent(p), f(a), g(b), h(c)
+            GNode(const Global_State& st, string p, double a, double b, double c, const MotionPrimitive& pat): state(st), parent(p), f(a), g(b), h(c), ac(pat)
             {}
             GNode(const GNode& pp)
             {
@@ -99,6 +178,7 @@ class GlobalPlanner
                 this->h = pp.h;
             }
         };
+        
         double max_steering_angle; // Max steering angle of vehicle
         double dt; // Time step for lattice graph
         double desired_velocity;
@@ -108,25 +188,36 @@ class GlobalPlanner
         vector<MotionPrimitive> motion_primitives;
 
         vector<double> cost_of_motion;
-        MatrixXd primitive_M= MatrixXd(3,(num_stepsL+num_stepsS)*(15+9)); //num_steps*(28+23)> primitive_M;
+        MatrixXd primitive_M= MatrixXd(3,(num_stepsL+num_stepsS)*(21+11)); //num_steps*(28+23)> primitive_M;
+        vector<double> thetas;
 
         unordered_map<string, GNode> gmap;
+        unordered_map<string, GNode> hmap;
 
         vector<double> xlim {-62, 30};
         vector<double> ylim {-40, 40};
+        double dx = 0.2;
+        double dy = 0.2;
 
     
     public:
         GlobalPlanner(Global_State start_state, Global_State goal_state, double max_steering_angle, double dt,
-         double desire_vel, double car_length);
+         double desire_vel, double car_length, double ddx, double ddy);
 
         void generate_motion_primitives();
 
         void PrecomputeCost(vector<double> steerF, vector<double> steerB);
 
         double computeEucH(Global_State st);
-        double compute2DH(Global_State st);
+
+        string stateHash2D(int sx, int sy);
         
+        double computeH(Global_State st, OccGrid occupancy);
+        double compute2DH(Global_State st, OccGrid occupancy);
+        
+        void pre_compute3DH(Global_State st);
+        double compute3DH(Global_State st);
+
         vector<MotionPrimitive> transform_primitive(Global_State n_st);
 
         vector<int> xy2i(Global_State state);
@@ -135,7 +226,7 @@ class GlobalPlanner
         
         string get_state_hash(Global_State state);
 
-        bool CollisionCheck(MotionPrimitive motion);
+        bool CollisionCheck(MotionPrimitive motion, OccGrid ocmap);
 
         bool isGoalState(Global_State st);
         
@@ -143,48 +234,25 @@ class GlobalPlanner
         
         vector<Global_State> solutionPath(string goal);
         
-        vector<Global_State> A_star(Global_State start_state, Global_State goal_state);
+        vector<Global_State> A_star(Global_State start_state, Global_State goal_state, OccGrid ocmap);
 
         void print_path(vector <Global_State> path);
+
+        void print_primitives(vector<MotionPrimitive> mpd);
+
+        void motion_primitive_writer(vector <MotionPrimitive> mpd, string file_name);
+
+        void publish_path(vector<Global_State> path, string file_name);
+
+        vector<MotionPrimitive> startS_primitives();
+
     
 };
 
-class OccGrid
-{
-    private:
-        double l = 5.142044059999996;   // Dimensions of each parking space
-        double w = 2.7572021484375;     // dimensions of each parking space
-        double xlim[2] = {-62, 30};
-        double ylim[2] = {-40, 40};
-        double dx = 0.1;
-        double dy = 0.1;
-        vector<vector<double>> occ_map;
-        vector<Global_State> parking_locations;
-
-    public:
-        OccGrid()
-        {
-            vector<double> map_row {0, mapY};
-            for(int i=0;i<mapX;++i)
-                occ_map.push_back(map_row);
-        
-        }
-
-        void update_occ(vector<Global_State> vehicles);
-
-        double check_occ(Global_State loc);
-
-        bool collision_check(MotionPrimitive pattern);
-        
-        vector<Global_State> get_parking_loc();
-
-
-};
 #endif
 
 /*
 ToDo's:
-    - Update state_hash to incorporate [x,y,theta], & not just [x,y]
     - Goal Region Define, (Check if Goal Reached)
     - Occupancy Grid
     - Heuristic Computation (Preferably Pre-Compute)
@@ -203,5 +271,6 @@ Completed:
     - Motion Primitive Transformation
     - Cost Computation (Preferable Pre-Compute) -> forward and backward primitives weighed differently.
     - Preliminary Goal State check implemented
-
+    - Update state_hash to incorporate [x,y,theta], & not just [x,y]
+    - Added parking class 
 */
