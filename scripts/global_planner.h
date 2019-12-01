@@ -10,8 +10,7 @@
 #include <Eigen/Dense>
 #include <fstream>
 
-#define num_stepsL 12
-#define num_stepsS 0
+#define num_steps 12
 #define PI 3.141592654
 #define mapX 460    // xlim [-62, 30]
 #define mapY 400    // ylim [-40,  40]
@@ -188,7 +187,7 @@ class GlobalPlanner
         vector<MotionPrimitive> motion_primitives;
 
         vector<double> cost_of_motion;
-        MatrixXd primitive_M= MatrixXd(3,(num_stepsL+num_stepsS)*(21+11)); //num_steps*(28+23)> primitive_M;
+        MatrixXd primitive_M= MatrixXd(3,(num_steps)*(21)); //num_steps*(28+23)> primitive_M;
         vector<double> thetas;
 
         unordered_map<string, GNode> gmap;
