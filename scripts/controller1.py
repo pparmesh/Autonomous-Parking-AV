@@ -28,7 +28,6 @@ import random
 
 # -------importing the LQR Controller-------------
 from LQR_Controller import *
-from spawn_parked import *
 
 class controller1():
     def __init__(self):
@@ -70,7 +69,25 @@ class controller1():
         
         self.player=self.world.spawn_actor(bp,self.spawn_point)
 
+    def spawn_parkV(self, empty_lot):
+        """
+        Function to spawn the parked vehicles..
+        """
+    
+        spawn_points = self.world.get_map().get_spawn_points()
+        number_of_spawn_points = len(spawn_points)
 
+        blueprints=self.world.get_blueprint_library()
+
+        batch=[]
+        for i,w in enumerate(spawn_points):
+            if i in empty_lot:
+                continue
+            blueprint = random.choice(blueprints.filter('vehicle.bmw.grandtourer'))
+            color=random.choice(blueprint.get_attribute('color').recommended_values)
+            blueprint.set_attribute('color',color)
+            batch.append(carla.command.SpawnActor(blueprint,w))
+        return batch
         
     def game_loop(self,args):
         '''
@@ -81,36 +98,59 @@ class controller1():
             client=carla.Client(args.host,args.port)
             client.set_timeout(2.0)
 
-            self.world=client.get_world()  # recieveing the world info from the simulator
+            # self.world=client.get_world()  # recieveing the world info from the simulator
+            self.world = client.load_world("Parking1")
+            self.world.set_weather(getattr(carla.WeatherParameters, "ClearNoon"))
             self.map=self.world.get_map()
             if self.no_rendering:  # Disabling the rendering 
                 self._render(self.world)
             
-            empty_lot = np.arange(109)  #[59, 48, 33, 38, 39,44, 70, 10, 11, 12, 15]
-            spawn_parkV(carla, client, empty_lot)
+            try:
+                empty_lot = np.arange(20, 109)  #[59, 48, 33, 38, 39,44, 70, 10, 11, 12, 15]
+                batch = self.spawn_parkV(empty_lot)
+                client.apply_batch(batch)
+            except RuntimeError:
+                pass 
 
-            self.ref_traj=np.load('waypoints.npy')
-            self.actor_spawn()  #spawning the actor
-            self.contoller=Controller2D(self.player,self.ref_traj,carla)
-                
+            try:
+                self.ref_traj=np.load('waypoints.npy')
+                self.actor_spawn()  #spawning the actor
+                self.contoller=Controller2D(self.player,self.ref_traj,carla)
+            except RuntimeError:
+                print("Actor not spawned")
+                pass
+
 
             while True:
-            #LQR Control
-                self.contoller.update_values()
-                if self.contoller.update_controls():
-                    print('Completed........!!')
-                    self.player.destroy()
-                    break
+                try:
+                    # self.world.tick()
+                    #LQR Control
+                    self.contoller.update_values()
+                    if self.contoller.update_controls():
+                        print('Completed........!!')
+                        try:
+                            self.player.destroy()
+                            break
+                        except:
+                            break
+                except RuntimeError:    
+                    pass
         finally:
             # if (self.world and self.world.recording_enabled):
             #     self.client.stop_recorder()
+            self.world - client.reload_world()
             actors = self.world.get_actors()
             for actor in actors:
-                actor.destroy()
+                try:
+                    actor.destroy()
+                except ERROR:
+                    continue
 
-            if self.player is not None:
-                self.player.destroy()
-            
+            try:
+                if self.player is not None:
+                    self.player.destroy()
+            except ERROR: 
+                pass
 
 def main():
     argparser=argparse.ArgumentParser(description='CARLA Control Client')
@@ -138,6 +178,8 @@ def main():
 
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')
+    except:
+        pass
 
 if __name__=='__main__':
     main()
