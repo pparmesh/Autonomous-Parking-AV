@@ -361,7 +361,7 @@ double GlobalPlanner::compute2DH(Global_State st, OccGrid occupancy)
                 }
                 if(imap.find(q_newH) == imap.end())
                     imap[q_newH] = Node2D(newX, newY, qH, DBL_MAX);
-                euH = 0;//sqrt((newX-qx)*(newX-qx) + (newY-qy)*(newY-qy));
+                euH = sqrt((newX-goalS[0])*(newX-goalS[0]) + (newY-goalS[1])*(newY-goalS[1]));
 
                 double gg = imap[qH].g +1;
                 if(imap[q_newH].g > gg)
