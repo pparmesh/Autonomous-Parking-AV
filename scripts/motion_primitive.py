@@ -83,6 +83,7 @@ class motion():
 			n_p.append(p2)
 		return n_p
 
+
 	def get_motion_patterns(self, state):
 		"""
 		Function to transform the set of motion patterns to the current state parametrs.
@@ -114,7 +115,6 @@ if __name__ == '__main__':
 	mp.generate_motion_patters()
 	motion_patterns = mp.motion_primitives
 	mp.plot_motion_patterns(motion_patterns, [15,15,np.pi/2], 'red')
-
 	st2=[8,8, np.pi/4]
 	pattern2 = mp.rotate_pattern(st2)
 	mp.plot_motion_patterns(pattern2, st2, 'green')

@@ -252,15 +252,11 @@ class GlobalPlanner
 
 /*
 ToDo's:
-    - Goal Region Define, (Check if Goal Reached)
-    - Occupancy Grid
-    - Heuristic Computation (Preferably Pre-Compute)
     - Collision Checking
         -Preliminary : Circle Based
         -Improved : 3 Circle Based
         -Final : Swath generation (pre-compute) and check.
     - Weighing the forward and backward motion primitives differently (in cost or heuristics)
-    - Occupancy Grid integration
     - Anytime D* 
 
 Completed:
@@ -272,4 +268,12 @@ Completed:
     - Preliminary Goal State check implemented
     - Update state_hash to incorporate [x,y,theta], & not just [x,y]
     - Added parking class 
+    - Occupancy Grid
+    - Heuristic Computation (Preferably Pre-Compute)
+    - Goal Region Define, (Check if Goal Reached)
+    - Occupancy Grid integration
+    - Collision Checking (Preli
+
+    minary)
+
 */

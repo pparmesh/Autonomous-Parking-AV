@@ -153,7 +153,7 @@ void GlobalPlanner::PrecomputeCost(vector<double> steerF, vector<double> steerB)
         if(delta == 0)
             cost = 1;   
         else
-            cost = 2*abs(delta); 
+            cost = 15*abs(delta); 
         // cost = abs(delta)*180/PI;
         cost_of_motion.push_back(cost);   
     }
@@ -464,10 +464,10 @@ bool GlobalPlanner::isGoalState(Global_State st)
 {
     // Function to check if the goal_state st can be considered as the goal state
     // Considering a euclidean distance < epsilon to check if goal found (Temporary)
-    double eps = 1;
+    double eps = 0.5;
     double diff = sqrt((st.x-goal_state.x)*(st.x-goal_state.x) + (st.y-goal_state.y)*(st.y-goal_state.y));// + (st.theta-goal_state.theta)*(st.theta-goal_state.theta));
     double d_thet = abs(st.theta-goal_state.theta);
-    double dstr = PI/18;
+    double dstr = PI/28;
     // cout<<diff<<" "<<d_thet<<endl;
     if(diff < eps && d_thet<dstr)
         return 1;
@@ -956,10 +956,10 @@ int main()
 
     // Global_State startS = Global_State(-50, -30, 0);
     // Global_State goalS = Global_State(-13.5, -31.04, 3*PI/4);
-    Global_State startS = Global_State(-15, 15, 3*PI/2);
+    Global_State startS = Global_State(-15, 30, 3*PI/2);
     // Global_State goalS = Global_State(-3, -13.7, 0);   //0.40,-31.27,0);
-    // Global_State goalS = Global_State(2.1477136611938477, -13.62131118774414, PI); //(-54.12901306152344,-2.4843921661376953,PI);        //{44}
-    Global_State goalS = Global_State(-22.580942153930664, 31.042787551879883,PI/2);      // {38}
+    Global_State goalS = Global_State(-54.12901306152344,-2.4843921661376953,PI);        //{44}
+    // Global_State goalS = Global_State(-22.580942153930664, 31.042787551879883,PI/2);      // {38}
 
     GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car, dx, dy);
 
