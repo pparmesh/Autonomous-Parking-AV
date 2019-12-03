@@ -80,7 +80,7 @@ if __name__ =='__main__':
 	PI = np.pi
 	start_state = [-15, 30, 3*PI/2]
 
-	goal_state = [-54.12901306152344,-2.4843921661376953,PI]
+	goal_state = [-28.20284652709961, -13.61036205291748,0]
 	# start_state = [-5, 15]
 	# goal_state = [15,15]
 
