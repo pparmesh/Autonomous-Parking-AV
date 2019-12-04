@@ -135,6 +135,18 @@ class OccGrid
         vector<vector<int>> get_occmap();
         void occ_map_publish(string file_name);
 
+        vector <int> obsX;
+        vector <int> obsY;
+
+        vector<int> get_obsX()
+        {
+            return obsX;
+        }
+        vector<int> get_obsY()
+        {
+            return obsY;
+        }
+
 };
 // --------___________-------------___________------_______________----_____----
 
@@ -184,10 +196,13 @@ class GlobalPlanner
         double car_length;
         typedef pair <double, string> f_COORDINATE;
 
-        vector<MotionPrimitive> motion_primitives;
+        vector <MotionPrimitive> motion_primitives;
+        vector <MotionPrimitive> swath_p;
 
         vector<double> cost_of_motion;
-        MatrixXd primitive_M= MatrixXd(3,(num_steps)*(21)); //num_steps*(28+23)> primitive_M;
+        MatrixXd primitive_M = MatrixXd(3,(num_steps)*(21)); //num_steps*(28+23)> primitive_M;
+        MatrixXd sw_M = MatrixXd(3, num_steps*21*4);
+
         vector<double> thetas;
 
         unordered_map<string, GNode> gmap;
@@ -203,6 +218,7 @@ class GlobalPlanner
         GlobalPlanner(Global_State start_state, Global_State goal_state, double max_steering_angle, double dt,
          double desire_vel, double car_length, double ddx, double ddy);
 
+        void generate_cc(MotionPrimitive& sw, Global_State st, int& i);
         void generate_motion_primitives();
 
         void PrecomputeCost(vector<double> steerF, vector<double> steerB);
@@ -217,7 +233,8 @@ class GlobalPlanner
         void pre_compute3DH(Global_State st);
         double compute3DH(Global_State st);
 
-        vector<MotionPrimitive> transform_primitive(Global_State n_st);
+        vector <MotionPrimitive> transform_primitive(Global_State n_st);
+        vector <MotionPrimitive> transform_swath(Global_State n_st);
 
         vector<int> xy2i(Global_State state);
 

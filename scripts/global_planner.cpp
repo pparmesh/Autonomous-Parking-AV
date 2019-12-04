@@ -958,7 +958,7 @@ int main()
     // Global_State goalS = Global_State(-13.5, -31.04, 3*PI/4);
     Global_State startS = Global_State(-15, 30, 3*PI/2);
     // Global_State goalS = Global_State(-3, -13.7, 0);   //0.40,-31.27,0);
-    Global_State goalS = Global_State(-28.20284652709961, -13.61036205291748, 0);        //{44}
+    Global_State goalS = Global_State(-54.12901306152344, -2.4843921661376953, 0);        //{44}
     // Global_State goalS = Global_State(-22.580942153930664, 31.042787551879883,PI/2);      // {38}
 
     GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car, dx, dy);
@@ -968,7 +968,7 @@ int main()
     g_planner.generate_motion_primitives();
 
     parking parkV;
-    parkV.reserve_spot({59, 48, 33, 38, 39,44, 70, 10, 103, 102}); // Setting parking lot as empty
+    parkV.reserve_spot({59, 48, 33, 39,44, 70, 10, 103, 102}); // Setting parking lot as empty
 
     // instantanting the occupance grid...........
     OccGrid occ(dx, dy);

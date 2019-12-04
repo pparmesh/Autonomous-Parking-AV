@@ -228,91 +228,91 @@ string GlobalPlanner::stateHash2D(int sx, int sy)
 }
 
 // ------2D Heuristics---------
-void GlobalPlanner::pre_compute2DH(Global_State st, OccGrid occupancy)
-{
-	// Using a 2D robot in xy world to compute the heurisics
-    unordered_map <string, bool> p_close;
-    set<f_COORDINATE> p_open;
-    int dirs = 8;
-    double euH;
+// void GlobalPlanner::pre_compute2DH(Global_State st, OccGrid occupancy)
+// {
+// 	// Using a 2D robot in xy world to compute the heurisics
+//     unordered_map <string, bool> p_close;
+//     set<f_COORDINATE> p_open;
+//     int dirs = 8;
+//     double euH;
 
-    vector <int> startS = xy2i(st);
-    vector <int> goalS = xy2i(goal_state);
-    string startH = stateHash2D(startS[0], startS[1]);
-    string goalH = stateHash2D(goalS[0], goalS[1]);
-    p_close[startH] = false;
-    p_close[goalH] = false;
+//     vector <int> startS = xy2i(st);
+//     vector <int> goalS = xy2i(goal_state);
+//     string startH = stateHash2D(startS[0], startS[1]);
+//     string goalH = stateHash2D(goalS[0], goalS[1]);
+//     p_close[startH] = false;
+//     p_close[goalH] = false;
 
-    p_open.insert(make_pair(0.0, startH));
+//     p_open.insert(make_pair(0.0, startH));
 
-    unordered_map<string, Node2D> hmap;
-    hmap[startH] = Node2D(startS[0], startS[1], "-1", 0);
+//     unordered_map<string, Node2D> hmap;
+//     hmap[startH] = Node2D(startS[0], startS[1], "-1", 0);
 
-    p_open.insert(make_pair(0.0, startH));
-    int dX[dirs] = {-1, -1, -1, 0, 0, 1, 1, 1};
-    int dY[dirs] = {-1, 0, 1, -1, 1, -1, 0, 1};
+//     p_open.insert(make_pair(0.0, startH));
+//     int dX[dirs] = {-1, -1, -1, 0, 0, 1, 1, 1};
+//     int dY[dirs] = {-1, 0, 1, -1, 1, -1, 0, 1};
 
-    int qx, qy;
-    while(!p_open.empty()) // && !p_close[goalH])
-    {
-        //  Popping the top node on the open list
-        f_COORDINATE q =*p_open.begin();
-        p_open.erase(p_open.begin());
-        qx = hmap[q.second].xi;
-        qy = hmap[q.second].yi;
-        string qH = stateHash2D(qx, qy);
-        if(p_close.find(qH)!=p_close.end() && p_close[qH])
-            continue;       // skipping if the state already in closed list
+//     int qx, qy;
+//     while(!p_open.empty()) // && !p_close[goalH])
+//     {
+//         //  Popping the top node on the open list
+//         f_COORDINATE q =*p_open.begin();
+//         p_open.erase(p_open.begin());
+//         qx = hmap[q.second].xi;
+//         qy = hmap[q.second].yi;
+//         string qH = stateHash2D(qx, qy);
+//         if(p_close.find(qH)!=p_close.end() && p_close[qH])
+//             continue;       // skipping if the state already in closed list
         
-        if(qH == goalH)
-        {
-            // cout<<"goal reached"<<endl;
-            p_close[goalH]=true;
-            break;
-        }
+//         if(qH == goalH)
+//         {
+//             // cout<<"goal reached"<<endl;
+//             p_close[goalH]=true;
+//             break;
+//         }
 
-        for(int i=0; i<dirs;++i)
-        {
-            int newX = qx + dX[i];
-            int newY = qy + dY[i];
-            string q_newH = stateHash2D(newX, newY);
+//         for(int i=0; i<dirs;++i)
+//         {
+//             int newX = qx + dX[i];
+//             int newY = qy + dY[i];
+//             string q_newH = stateHash2D(newX, newY);
 
-            if(p_close[q_newH])
-                continue;   //skipping if q_new in closed list already
+//             if(p_close[q_newH])
+//                 continue;   //skipping if q_new in closed list already
 
-            if(newX>=0 && newX<mapX && newY>=0 && newY<mapY)
-            {
-                if(!occupancy.isEmpty(newX, newY))
-                { 
-                    continue;   // skipping if there is an obstacle at the (x,y) location
-                }
-                if(hmap.find(q_newH) == hmap.end())
-                    hmap[q_newH] = Node2D(newX, newY, qH, DBL_MAX);
-                euH = 0;	//sqrt((newX-goalS[0])*(newX-goalS[0]) + (newY-goalS[1])*(newY-goalS[1]));
+//             if(newX>=0 && newX<mapX && newY>=0 && newY<mapY)
+//             {
+//                 if(!occupancy.isEmpty(newX, newY))
+//                 { 
+//                     continue;   // skipping if there is an obstacle at the (x,y) location
+//                 }
+//                 if(hmap.find(q_newH) == hmap.end())
+//                     hmap[q_newH] = Node2D(newX, newY, qH, DBL_MAX);
+//                 euH = 0;	//sqrt((newX-goalS[0])*(newX-goalS[0]) + (newY-goalS[1])*(newY-goalS[1]));
 
-                double gg = hmap[qH].g +1;
-                if(hmap[q_newH].g > gg)
-                {
-                    hmap[q_newH] = Node2D(newX, newY, qH, gg);
-                    p_open.insert(make_pair(gg+euH, q_newH));
-                }
-            }
-        }
-    }
-}
+//                 double gg = hmap[qH].g +1;
+//                 if(hmap[q_newH].g > gg)
+//                 {
+//                     hmap[q_newH] = Node2D(newX, newY, qH, gg);
+//                     p_open.insert(make_pair(gg+euH, q_newH));
+//                 }
+//             }
+//         }
+//     }
+// }
 
-double GlobalPlanner::computeH(Global_State st)
-{	
-	vector <int> qst = xy2i(st);
-	string q_new = stateHash2D(qst[0], qst[1]);
-	if(hmap.find(q_new) == hmap.end())
-	{
-		cout<<" heuristic could not find the state";
-		return 0;
-	}
-	else
-		return hmap[q_new].g;
-}
+// double GlobalPlanner::computeH(Global_State st)
+// {	
+// 	vector <int> qst = xy2i(st);
+// 	string q_new = stateHash2D(qst[0], qst[1]);
+// 	if(hmap.find(q_new) == hmap.end())
+// 	{
+// 		cout<<" heuristic could not find the state";
+// 		return 0;
+// 	}
+// 	else
+// 		return hmap[q_new].g;
+// }
 
 double GlobalPlanner::compute2DH(Global_State st, OccGrid occupancy)
 {
@@ -1069,7 +1069,7 @@ int main()
     // Global_State goalS = Global_State(-13.5, -31.04, 3*PI/4);
     Global_State startS = Global_State(-15, 30, 3*PI/2);
     // Global_State goalS = Global_State(-3, -13.7, 0);   //0.40,-31.27,0);
-    Global_State goalS = Global_State(-28.20284652709961, -13.61036205291748, 0);        //{44}
+    Global_State goalS = Global_State(-54.12901306152344, -2.4843921661376953, 0);        //{44}
     // Global_State goalS = Global_State(2.1477136611938477, -13.62131118774414, PI);      // {38}
 
     GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car, dx, dy);
@@ -1079,7 +1079,7 @@ int main()
     g_planner.generate_motion_primitives();
 
     parking parkV;
-    parkV.reserve_spot({59, 48, 38, 39, 44, 10, 103, 102}); // Setting parking lot as empty
+    parkV.reserve_spot({59, 48, 39, 44, 10, 103, 102}); // Setting parking lot as empty
 
     // instantanting the occupance grid...........
     OccGrid occ(dx, dy);
