@@ -43,18 +43,20 @@ double desire_vel, double car_len, double ddx, double ddy)
     dy = ddy;
 }
 
+
 void GlobalPlanner::generate_motion_primitives()
 {
     // Function to Precompute the set of motion primitives
     Global_State st_0 = start_state;
 
     int m=0;
+    int sm=0;
     int nsteps = num_steps -1;
     // ------Motion Primitives in the forward direction--------------
     
     // Formulating a list of discretized steering angles
     // Forward direction.............
-    double f_Vx = 2;
+    double f_Vx = 2.0;
     double x = st_0.x;
     double y = st_0.y;
     double x0 = st_0.x;
@@ -85,10 +87,14 @@ void GlobalPlanner::generate_motion_primitives()
     for(double d_del : deltaF)
     {
         MotionPrimitive p;
+        MotionPrimitive swc;
+
         x = st_0.x;
         y = st_0.y;
         theta = st_0.theta;
         p.insert_state(st_0);
+        generate_cc(swc, st_0, sm); //+++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
         primitive_M.col(m) << x-x0, y-y0, 1.0;  //theta;
         thetas.push_back(theta);
         ++m;
@@ -98,7 +104,7 @@ void GlobalPlanner::generate_motion_primitives()
             y += f_Vx*sin(theta)*dt;
             theta += f_Vx*tan(d_del)*dt/car_length;
             p.insert_state(Global_State(x, y, theta));
-            
+            generate_cc(swc, Global_State(x, y, theta), sm);	//+++++++++++++++++++++++++++++
             //  Adding the motion primitives to the matrix
             primitive_M.col(m) << x-x0, y-y0, 1.0;  //theta;
             thetas.push_back(theta);
@@ -106,6 +112,7 @@ void GlobalPlanner::generate_motion_primitives()
             
         }
         motion_primitives.push_back(p);
+        swath_p.push_back(swc);	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     }
 
@@ -143,6 +150,48 @@ void GlobalPlanner::generate_motion_primitives()
   
 }
 
+vector<MotionPrimitive> GlobalPlanner::generate_c(vector<MotionPrimitive> steps)
+{
+    vector <MotionPrimitive> omap;
+    for(MotionPrimitive a : steps)
+    {
+        MotionPrimitive p;
+        vector<Global_State> pp = a.get_primitive();
+        for(Global_State ap : pp)
+        {
+            double x = ap.x;
+            double y = ap.y;
+            double ang = wrap2pi(ap.theta);
+
+            p.insert_state(Global_State(x-cos(ang), y-sin(ang), ang));
+            p.insert_state(Global_State(x+cos(ang), y+sin(ang), ang));
+        }
+        omap.push_back(p);
+    }
+    return omap;
+
+}
+
+void GlobalPlanner::generate_cc(MotionPrimitive& sw, Global_State st, int& i)
+{
+	// Function to add the circle centers for all the states in the current motion primitive.
+	double x1 = st.x;
+	double y1 = st.y ;
+	double ang = wrap2pi(st.theta);
+
+	double x2 = x1 - cos(ang);
+	double y2 = y1 - sin(ang);
+	sw.insert_state(Global_State(x2, y2, ang));
+	sw_M.col(i)<<x2-x1, y2-y1, 1.0;
+	++i;
+
+	x2 = x1 +cos(ang);
+	y2 = y1+ sin(ang);
+	sw.insert_state(Global_State(x2, y2, ang));
+	sw_M.col(i)<<x2-x1, y2-y1, 1.0;
+	++i;
+}
+
 void GlobalPlanner::PrecomputeCost(vector<double> steerF, vector<double> steerB)
 {
     // Function to pre-compute the cost for different motion patterns weighed on curvature, forward/reverse.
@@ -155,9 +204,9 @@ void GlobalPlanner::PrecomputeCost(vector<double> steerF, vector<double> steerB)
         else
             cost = 15*abs(delta); 
         // cost = abs(delta)*180/PI;
-        cost_of_motion.push_back(cost);   
+        cost_of_motion.push_back(cost);  
+    cout<<"detla: "<<delta<<", cost: "<<cost<<endl;
     }
-
     // For Backward motion primitives---------------------
     /*
     for(double delta : steerB)
@@ -411,6 +460,43 @@ vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
     return imap;
 }
 
+vector<MotionPrimitive> GlobalPlanner::transform_swath(Global_State n_st)
+{
+	// ++++++++++++++++++++++++Function to tranform (translate + rotate) te circle centers for swath generation
+	double dx = n_st.x - start_state.x;
+	double dy = n_st.y - start_state.y;
+	double dtheta = n_st.theta - start_state.theta;
+
+	// Formulating the transformation matrix.......
+	Matrix <double, 3, 3>   M;
+	M<<cos(dtheta), -sin(dtheta), start_state.x,
+		sin(dtheta), cos(dtheta), start_state.y,
+		0, 0, 1;
+
+	const int nmp = 21;		// number of motion primitives
+	Matrix<double, 3, num_steps*4*nmp> n_p = M*sw_M;
+
+	// Converting the matrix to a vector of motion primitives
+	vector <MotionPrimitive> smap;
+	MotionPrimitive s;
+
+	
+	for(int pi=0; pi<(num_steps*nmp); ++pi)
+	{
+		for(int mi =pi*2;mi<(pi*2 + 2);++mi)
+		{
+			s.insert_state(Global_State(n_p.col(mi)[0]+dx, n_p.col(mi)[1]+dy, wrap2pi(thetas[mi]+dtheta)));
+		}
+		if((pi+1)%num_steps ==0)
+		{
+			MotionPrimitive s_new(s);
+			smap.push_back(s_new);
+			s.clear_primitives();
+		}
+	}
+	return smap;
+}
+
 vector<int> GlobalPlanner::xy2i(Global_State state)
 {
     //Function to conver the parking lot spatial location to occupancy grid indices
@@ -430,21 +516,51 @@ string GlobalPlanner::get_state_hash(Global_State state)
     return st_hash;
 }
 
-bool GlobalPlanner::CollisionCheck(MotionPrimitive motion, OccGrid ocmap)
+
+bool GlobalPlanner::CollisionCheck(Global_State st, MotionPrimitive motion, OccGrid ocmap)
 {
     // Function to check if the motion primitive path is collision free.
     // 0: Collision free, 1: Collision
 
-    // Collision check for a point robot.
     vector <Global_State> m_step = motion.get_primitive();
+    // Collision check for a point robot......................
+
+    // for(Global_State stg : m_step)
+    // {
+    //     vector <int> index = xy2i(stg);
+    //     if(ocmap.isEmpty(index[0], index[1]))
+    //         continue;
+    //     else
+    //         return 1;
+    // }
+
+    // Collision check for swath..........................
+    vector< vector<int>> ic;
     for(Global_State stg : m_step)
+    	ic.push_back(xy2i(stg));
+
+    vector <vector<int>> obs_map = ocmap.get_occmap();
+    vector<int> state = xy2i(st);
+    int x1 = max(0, state[0]-20);
+    int x2 = min(mapX, state[0] + 20);
+    int y1 = max(0, state[1]-20);
+    int y2 = min(mapY, state[1] + 20)   ;
+
+    for(int i=x1;i<x2;++i)
     {
-        vector <int> index = xy2i(stg);
-        if(ocmap.isEmpty(index[0], index[1]))
-            continue;
-        else
-            return 1;
-    }
+        for(int j=y1; j<y2;++j)
+        {
+            for(int p = 0;p<ic.size();++p)
+            {
+                if(obs_map[i][j]==0)
+                    continue;
+                double d = sqrt((ic[p][0]-i)*(ic[p][0]-i) + (ic[p][1]-j)*(ic[p][1]-j));
+                if(d<=1.05)
+                    return 1;
+            }
+        }
+    }    
+
     return 0;
 }
 
@@ -529,7 +645,11 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
     
 
     // Implement the open list to keep track of states to expand using a set
-    // It is a set of f_COORINATE, i.e it has location of state and its f value
+    // It is a set of f_COORINATE, i.e it has location of state and its f v2 = x1 + 2*cos(ang);
+    // y2 = y1 + 2*sin(ang);
+    // sw.insert_state(Global_State(x2, y2, ang));
+    // sw_M.col(i)<<x2-x1, y2-y1, 1.0;
+    // +alue
     set<f_COORDINATE> open_list; 
     // Add my start cell to my open list
     open_list.insert(make_pair(0.0, start)); 
@@ -545,7 +665,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
         // If they are not in closed list, find their f-values. If they are in the open list with a larger
         // f-value then update it, otherwise add this index to the open list. 
         // Loop till goal state has not been expanded.
-        if(mexp > 3000)
+        if(mexp > 5000)
             break;
         ++mexp;
         // Get index from openlist. Pop the first value from the open list.
@@ -582,8 +702,9 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
         // Pushing the state into current state
         closed_list[curr_state] = true; 
 
-        vector<MotionPrimitive> actions = transform_primitive(q_current);   // computing the set of motion patterns for the current set
-
+        vector <MotionPrimitive> actions = transform_primitive(q_current);   // computing the set of motion patterns for the current set
+        vector <MotionPrimitive> swath_cc = transform_primitive(q_current);
+        // vector <MotionPrimitive> swath_cc = generate_c(actions);
         for (int mp_i=0;mp_i<actions.size();++mp_i)
         {
             MotionPrimitive step = actions[mp_i];
@@ -594,7 +715,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
                 // cout<<"not valid: "<<sfg.x<<" ,"<<sfg.y<<endl;
                 continue;
             }
-            if(CollisionCheck(step, ocmap))  // Checking for collision
+            if(CollisionCheck(q_current, swath_cc[mp_i], ocmap))  // Checking for collision
                 continue;
             
 
@@ -658,6 +779,7 @@ void GlobalPlanner::motion_primitive_writer(vector<MotionPrimitive> mpd, string 
     for(MotionPrimitive m : mpd)
     {
         vector<Global_State> mj = m.get_primitive();
+        cout<<mj.size()<<endl;
         if (mj.size() < 8)
             continue;       // ignoring the motion primitives with the 8 steps curently
         for(int e=0;e<mj.size();++e)
@@ -720,7 +842,9 @@ void OccGrid::update_static_occ(vector<int> veh_i, int full)
     for(int m=veh_i[0]; m<=veh_i[2]; ++m)
     {
         for(int n=veh_i[1]; n<=veh_i[3]; ++n)
+        {
             occ_map[m][n] = full;
+        }
     }
 }
 
@@ -968,7 +1092,7 @@ int main()
     Global_State startS = Global_State(-15, 30, 3*PI/2);
     // Global_State goalS = Global_State(-3, -13.7, 0);   //0.40,-31.27,0);
     Global_State goalS = Global_State(-54.12901306152344, -2.4843921661376953, 0);        //{44}
-    // Global_State goalS = Global_State(2.1477136611938477, -13.62131118774414,PI);      // {38}
+    // Global_State goalS = Global_State(2.1477136611938477, -13.62131118774414, PI);      // {38}
 
     GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car, dx, dy);
 
@@ -977,7 +1101,7 @@ int main()
     g_planner.generate_motion_primitives();
 
     parking parkV;
-    parkV.reserve_spot({59, 48, 33, 39,44, 70, 10, 103, 102}); // Setting parking lot as empty
+    parkV.reserve_spot({59, 48, 39, 44, 10, 70}); // Setting parking lot as empty
 
     // instantanting the occupance grid...........
     OccGrid occ(dx, dy);
@@ -1001,15 +1125,16 @@ int main()
     
     // g_planner.print_primitives(pp);
 
-    //  Pre-Computing the 3D heuristic....
+    // Pre-Computing the 2D heuristic....
     g_planner.pre_compute2DH(startS, occ);
 
     // Searching for path to the goal...................................... 
     vehicle_path = g_planner.A_star(startS, goalS ,occ);
     // print_path(vehicle_path);
     g_planner.publish_path(vehicle_path, "waypoints.csv");
+
     
     cout<<" Time taken for computation : "<<(double)(clock() - start_t)/CLOCKS_PER_SEC<<" s"<<endl;
-    
+        
     return 0;
 }   

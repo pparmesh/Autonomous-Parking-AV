@@ -135,18 +135,6 @@ class OccGrid
         vector<vector<int>> get_occmap();
         void occ_map_publish(string file_name);
 
-        vector <int> obsX;
-        vector <int> obsY;
-
-        vector<int> get_obsX()
-        {
-            return obsX;
-        }
-        vector<int> get_obsY()
-        {
-            return obsY;
-        }
-
 };
 // --------___________-------------___________------_______________----_____----
 
