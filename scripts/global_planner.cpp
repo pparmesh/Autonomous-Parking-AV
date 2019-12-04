@@ -527,7 +527,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
 
     int mexp = 0;
     // Expand till open list is not empty
-    double wt = 1.9;    // weight for weighted heuristic
+    double wt = 2.4;    // weight for weighted heuristic
     while(!open_list.empty() && !closed_list[goal])
     {   
         // Pick index with lowest f value from open list. Set will help in doing this as it is ordered.
@@ -568,7 +568,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
             gmap[goal].state = goal_state;
             break;
         }
-        cout<<"open list size: "<<open_list.size()<<" "<<q_current.x<<" "<<q_current.y<<" "<<q_current.theta<<endl;
+        // cout<<"open list size: "<<open_list.size()<<" "<<q_current.x<<" "<<q_current.y<<" "<<q_current.theta<<endl;
 
         // Pushing the state into current state
         closed_list[curr_state] = true; 
@@ -997,7 +997,7 @@ int main()
 
     // Searching for path to the goal...................................... 
     vehicle_path = g_planner.A_star(startS, goalS ,occ);
-    print_path(vehicle_path);
+    // print_path(vehicle_path);
     g_planner.publish_path(vehicle_path, "waypoints.csv");
     
     cout<<" Time taken for computation : "<<(double)(clock() - start_t)/CLOCKS_PER_SEC<<" s"<<endl;

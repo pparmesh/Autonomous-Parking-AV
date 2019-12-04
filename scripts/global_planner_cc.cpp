@@ -56,7 +56,7 @@ void GlobalPlanner::generate_motion_primitives()
     
     // Formulating a list of discretized steering angles
     // Forward direction.............
-    double f_Vx = 2.5;
+    double f_Vx = 2.0;
     double x = st_0.x;
     double y = st_0.y;
     double x0 = st_0.x;
@@ -191,7 +191,7 @@ void GlobalPlanner::PrecomputeCost(vector<double> steerF, vector<double> steerB)
         if(delta == 0)
             cost = 1;   
         else
-            cost = 20*abs(delta); 
+            cost = 15*abs(delta); 
         // cost = abs(delta)*180/PI;
         cost_of_motion.push_back(cost);   
     }
@@ -624,7 +624,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
 
     int mexp = 0;
     // Expand till open list is not empty
-    double wt = 1.9;    // weight for weighted heuristic
+    double wt = 2.4;    // weight for weighted heuristic
     while(!open_list.empty() && !closed_list[goal])
     {   
         // Pick index with lowest f value from open list. Set will help in doing this as it is ordered.
