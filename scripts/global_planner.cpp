@@ -189,94 +189,103 @@ string GlobalPlanner::stateHash2D(int sx, int sy)
     return stg;
 }
 
-// ------3D Heuristics---------
-void GlobalPlanner::pre_compute3DH(Global_State st)
-{
-    unordered_map <string, bool> p_close;
-    string qS = get_state_hash(st);
-    string qG = get_state_hash(goal_state);
-    p_close[qS] = false;
-    p_close[qG] = false;
-
-    hmap[qS] = GNode(start_state, "-1", 0, 0, 0, motion_primitives[0]);
-
-    set<f_COORDINATE> p_open;
-    p_open.insert(make_pair(0.0, qS));
-
-    while(!p_open.empty() && !p_close[qG])
-    {
-        // Popping the top state of priority queue
-        f_COORDINATE q = *p_open.begin();
-        p_open.erase(p_open.begin());
-
-        Global_State qc = hmap[q.second].state;
-        string curr_state = get_state_hash(qc);
-        
-        //  Checking if the state has already been exapanded.......
-        if((p_close.find(curr_state) != p_close.end()) && p_close[curr_state])
-            continue;   // checking if the state has already been expanded
-
-        // Checking if goal reached
-        if(isGoalState(qc))
-        {
-            p_close[qG] = true;
-            return;
-        }
-        p_close[curr_state] = true;
-
-        vector <MotionPrimitive> actions = transform_primitive(qc);
-        for(int p=0; p<actions.size(); ++p)
-        {
-            MotionPrimitive action = actions[p];
-            // Checking if the action is valid at the current state
-            if( !is_valid_primitive(action))
-                continue;
-
-            Global_State q_new = action.next_state();
-
-            double gNew;
-            string new_state = get_state_hash(q_new);
-
-            if(p_close[new_state])
-                continue;   // skipping if the state has already been expanded
-            double cost = cost_of_motion[p];
-
-            if(hmap.find(new_state) == hmap.end())
-                hmap[new_state] = GNode(q_new, curr_state, DBL_MAX, DBL_MAX, DBL_MAX, motion_primitives[0]);
-
-            if(hmap[new_state].g > (cost + hmap[curr_state].g))
-            {
-                gNew = hmap[curr_state].g + cost;
-                hmap[new_state] = GNode(q_new, curr_state, gNew, gNew, gNew, action);
-                p_open.insert(make_pair(gNew, new_state));
-
-            }
-
-        }
-
-    }
-    cout<<p_open.size()<<endl;
-    cout<<p_close[qG]<<endl;
-}
-
-double GlobalPlanner::compute3DH(Global_State st)
-{
-    string qst = get_state_hash(st);
-    if(hmap.find(qst) == hmap.end())
-        pre_compute3DH(st);
-    return hmap[qst].g;
-}
-// ------------Heuristics-------
-double GlobalPlanner::computeH(Global_State st, OccGrid occupancy)
-{
-    double h1, h2;
-    h1 = compute2DH(st, occupancy);
-    h2 = compute3DH(st);
-    cout<<h1<<" "<<h2<<endl;
-    return max(h1, h2);
-}
-
 // ------2D Heuristics---------
+void GlobalPlanner::pre_compute2DH(Global_State st, OccGrid occupancy)
+{
+ // Using a 2D robot in xy world to compute the heurisics
+    unordered_map <string, bool> p_close;
+    set<f_COORDINATE> p_open;
+    int dirs = 8;
+    double euH;
+
+    vector <int> startS = xy2i(st);
+    vector <int> goalS = xy2i(goal_state);
+    string startH = stateHash2D(startS[0], startS[1]);
+    string goalH = stateHash2D(goalS[0], goalS[1]);
+    p_close[startH] = false;
+    p_close[goalH] = false;
+
+    // p_open.insert(make_pair(0.0, startH));
+    p_open.insert(make_pair(0.0, goalH));
+
+    // unordered_map<string, Node2D> hmap;
+    // hmap[startH] = Node2D(startS[0], startS[1], "-1", 0);
+    hmap[goalH] = Node2D(goalS[0], goalS[1], "-1", 0);
+
+    int dX[dirs] = {-1, -1, -1, 0, 0, 1, 1, 1};
+    int dY[dirs] = {-1, 0, 1, -1, 1, -1, 0, 1};
+
+    int qx, qy;
+    while(!p_open.empty()) // && !p_close[goalH])
+    {
+        //  Popping the top node on the open list
+        f_COORDINATE q =*p_open.begin();
+        p_open.erase(p_open.begin());
+        qx = hmap[q.second].xi;
+        qy = hmap[q.second].yi;
+        string qH = stateHash2D(qx, qy);
+        if(p_close.find(qH)!=p_close.end() && p_close[qH])
+            continue;       // skipping if the state already in closed list
+        
+        // if(qH == goalH)
+        // {
+        //     // cout<<"goal reached"<<endl;
+        //     p_close[goalH]=true;
+        //     break;
+        // }
+        if(qH == startH)
+        {
+            p_close[startH]= true;
+            // break;
+        }
+
+        for(int i=0; i<dirs;++i)
+        {
+            int newX = qx + dX[i];
+            int newY = qy + dY[i];
+            string q_newH = stateHash2D(newX, newY);
+
+            if(p_close[q_newH])
+                continue;   //skipping if q_new in closed list already
+
+            if(newX>=0 && newX<mapX && newY>=0 && newY<mapY)
+            {
+                if(!occupancy.isEmpty(newX, newY))
+                { 
+                    continue;   // skipping if there is an obstacle at the (x,y) location
+                }
+                if(hmap.find(q_newH) == hmap.end())
+                    hmap[q_newH] = Node2D(newX, newY, qH, DBL_MAX);
+                euH = 0; //sqrt((newX-goalS[0])*(newX-goalS[0]) + (newY-goalS[1])*(newY-goalS[1]));
+
+                double gg = hmap[qH].g +1;
+                if(hmap[q_newH].g > gg)
+                {
+                    hmap[q_newH] = Node2D(newX, newY, qH, gg);
+                    p_open.insert(make_pair(gg+euH, q_newH));
+                }
+            }
+        }
+    }
+}
+
+double GlobalPlanner::computeH(Global_State st, OccGrid occupancy)
+{    
+ vector <int> qst = xy2i(st);
+ string q_new = stateHash2D(qst[0], qst[1]);
+
+ if(hmap.find(q_new) == hmap.end())
+ {
+    cout<<" heuristic could not find the state \n";
+    pre_compute2DH(st, occupancy);
+    cout<<hmap[q_new].g<<endl;
+    return hmap[q_new].g;
+ }
+ else
+    return hmap[q_new].g;
+}
+
+
 double GlobalPlanner::compute2DH(Global_State st, OccGrid occupancy)
 {
     // Using a 2D robot in xy world to compute the heurisics
@@ -599,8 +608,8 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
                 continue;   // Skipping if the state is already in the closed list.
 
             double cost = cost_of_motion[mp_i];
-            // hNew = computeH(q_new, ocmap);
-            hNew = compute2DH(q_new, ocmap);
+            hNew = computeH(q_new, ocmap);
+            // hNew = compute2DH(q_new, ocmap);
             if(hNew == -1)  // skipping the state if 2D heuristic couldn't find path to goal-state
                 continue;
             else
@@ -959,7 +968,7 @@ int main()
     Global_State startS = Global_State(-15, 30, 3*PI/2);
     // Global_State goalS = Global_State(-3, -13.7, 0);   //0.40,-31.27,0);
     Global_State goalS = Global_State(-54.12901306152344, -2.4843921661376953, 0);        //{44}
-    // Global_State goalS = Global_State(-22.580942153930664, 31.042787551879883,PI/2);      // {38}
+    // Global_State goalS = Global_State(2.1477136611938477, -13.62131118774414,PI);      // {38}
 
     GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car, dx, dy);
 
@@ -993,7 +1002,7 @@ int main()
     // g_planner.print_primitives(pp);
 
     //  Pre-Computing the 3D heuristic....
-    // g_planner.pre_compute3DH(startS);
+    g_planner.pre_compute2DH(startS, occ);
 
     // Searching for path to the goal...................................... 
     vehicle_path = g_planner.A_star(startS, goalS ,occ);

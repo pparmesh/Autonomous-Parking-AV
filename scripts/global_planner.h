@@ -201,12 +201,12 @@ class GlobalPlanner
 
         vector<double> cost_of_motion;
         MatrixXd primitive_M = MatrixXd(3,(num_steps)*(21)); //num_steps*(28+23)> primitive_M;
-        MatrixXd sw_M = MatrixXd(3, num_steps*21*4);
+        MatrixXd sw_M = MatrixXd(3, num_steps*21*2);
 
         vector<double> thetas;
 
         unordered_map<string, GNode> gmap;
-        unordered_map<string, GNode> hmap;
+        unordered_map<string, Node2D> hmap;
 
         vector<double> xlim {-62, 30};
         vector<double> ylim {-40, 40};
@@ -219,6 +219,8 @@ class GlobalPlanner
          double desire_vel, double car_length, double ddx, double ddy);
 
         void generate_cc(MotionPrimitive& sw, Global_State st, int& i);
+        vector<MotionPrimitive> generate_c(vector<MotionPrimitive> steps);
+
         void generate_motion_primitives();
 
         void PrecomputeCost(vector<double> steerF, vector<double> steerB);
@@ -227,11 +229,11 @@ class GlobalPlanner
 
         string stateHash2D(int sx, int sy);
         
+        void pre_compute2DH(Global_State st, OccGrid occupancy);
         double computeH(Global_State st, OccGrid occupancy);
+        
         double compute2DH(Global_State st, OccGrid occupancy);
         
-        void pre_compute3DH(Global_State st);
-        double compute3DH(Global_State st);
 
         vector <MotionPrimitive> transform_primitive(Global_State n_st);
         vector <MotionPrimitive> transform_swath(Global_State n_st);
@@ -242,7 +244,7 @@ class GlobalPlanner
         
         string get_state_hash(Global_State state);
 
-        bool CollisionCheck(MotionPrimitive motion, OccGrid ocmap);
+        bool CollisionCheck(Global_State st, MotionPrimitive motion, OccGrid ocmap);
 
         bool isGoalState(Global_State st);
         
