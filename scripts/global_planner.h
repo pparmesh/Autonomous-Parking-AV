@@ -19,15 +19,6 @@ using namespace std;
 using namespace Eigen;
 
 
-double wrap2pi(double angle)
-{
-    // Function to wrap the angles between 0 and 2pi
-    angle = fmod(angle, 2*PI);
-    if(angle < 0)
-        angle+=2*PI;
-
-    return angle;
-}
 
 struct Global_State
 {
@@ -251,6 +242,16 @@ class GlobalPlanner
         void publish_path(vector<Global_State> path, string file_name);
 
         vector<MotionPrimitive> startS_primitives();
+
+        double wrap2pi(double angle)
+        {
+            // Function to wrap the angles between 0 and 2pi
+            angle = fmod(angle, 2*PI);
+            if(angle < 0)
+                angle+=2*PI;
+
+            return angle;
+        }
 
     
 };

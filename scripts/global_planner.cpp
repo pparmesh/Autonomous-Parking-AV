@@ -1049,7 +1049,7 @@ void parking::reserve_spot(vector <int> inds)
 
 // ------------------------------------------------------------------------------------------------
 
-void print_path(vector<Global_State> path)
+void GlobalPlanner::print_path(vector<Global_State> path)
 {
     vector<double> vx;
     vector<double> vy;

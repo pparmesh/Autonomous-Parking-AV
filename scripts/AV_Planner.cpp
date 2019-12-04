@@ -20,11 +20,11 @@ AV_Planner::AV_Planner() // May need to change constructor
 
 void set_global_plan( Global_State startS, Global_State goalS)
 {
-  double dx = 0.2, dy = 0.2;  // Grid discretization
-  double v_des = 2;   // desired velocity of the vehicle 
-  double l_car = 2.2;   // vehicle wheel-base length
-  double delT = 0.1;
-  double steer_limit = PI*61/180; // max steer angle limit on either side of the vehicle
+  double dx = 0.2, dy = 0.2;     // Grid discretization
+  double v_des = 1.2;     // Desrired Velocity
+  double l_car = 2.2;     // Wheelbase of the vehicle
+  double delT = 0.1;      // delta time of the simulation
+  double steer_limit = PI*61/180;
 
   GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car, dx, dy);
 
@@ -33,14 +33,14 @@ void set_global_plan( Global_State startS, Global_State goalS)
 
   // Instantiating the parking space
   parking parkV;
-  parkV.reserve_spot({59, 48, 33, 38, 39, 44, 70, 10, 103, 102});   // setting the parking spaces with these indices as empty
+  parkV.reserve_spot({59, 48, 33, 38, 39, 44, 70, 10});   // setting the parking spaces with these indices as empty
 
   // Instantianing the occupancy grid
   OccGrid occ(dx, dy); 
   occ.generate_static_occ(parkV);
 
   // -------Checking if the goal state is empty and can be parked on---------------------------
-  vector <int> g_i = g_planner.xy2i(goalS);
+  vector <int> ind = g_planner.xy2i(goalS);
   if(occ.isEmpty(ind[0], ind[1]))
     cout<<"Vehicle can be parked at the goal state"<<endl;
   else
@@ -50,6 +50,8 @@ void set_global_plan( Global_State startS, Global_State goalS)
   } 
 
   // --Searching for a path to the goal.....................
+  g_planner.pre_compute2DH(startS, occ);
+  
   vector <GLobal_State> path;
   path = g_planner.A_star(startS, goalS, occ); 
   
