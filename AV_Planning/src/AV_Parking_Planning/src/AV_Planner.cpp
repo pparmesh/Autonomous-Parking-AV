@@ -61,37 +61,44 @@ void AV_Planner::set_global_plan(Global_State startS, Global_State goalS)
     // Searching for path to the goal...................................... 
     vehicle_path = g_planner.A_star(startS, goalS ,occ);
     m_global_plan = vehicle_path;
+
     return;
   
 }
-// void AV_Planner::plan_to_goal(Global_State pre_goal, Global_State goal)
-// {
-//   NodeState pre_goal_node = {pre_goal.x, pre_goal.y, pre_goal.theta, 2, 0, 0, 0, 0};
-//   NodeState goal_node = {goal.x, goal.y, goal.theta, 0, 0, 0, 0, 0};
-//   LocalPlanner loc(m_ctrl_freq, pre_goal_node, goal_node);
-//   MatrixXd coef = loc.getPolynomialCoefficients();
-//   m_goal_region_plan = loc.generateLocalPlan();
-// }
+void AV_Planner::plan_to_goal(Global_State pre_goal, Global_State goal)
+{
+  cout<<"Planning to goal"<<endl;
+  NodeState pre_goal_node = {pre_goal.x, pre_goal.y, pre_goal.theta, 2, 0, 0, 0, 0};
+  NodeState goal_node = {goal.x, goal.y, goal.theta, 0, 0, 0, 0, 0};
+  LocalPlanner loc(m_ctrl_freq, pre_goal_node, goal_node);
+  MatrixXd coef = loc.getPolynomialCoefficients();
+  cout<<coef<<endl;
+  m_goal_region_plan = loc.generateLocalPlan();
+  cout<<"DONE"<<endl;
+  cout<<"Local Plan Size: "<<m_goal_region_plan.rows();
+}
 
 void AV_Planner::publishTrajectory()
 {
     trajectory_msgs::JointTrajectory total_traj;
-    if (m_near_goal)
+    // if (!m_near_goal)
     for (int i=0; i<m_global_plan.size();i++)
     {
+      // cout<<"plan: "<<m_global_plan[i].x<<" "<<m_global_plan[i].y<<endl;
       trajectory_msgs::JointTrajectoryPoint point;
       point.positions = {m_global_plan[i].x, m_global_plan[i].y};
       point.velocities = {2,0};      
       total_traj.points.push_back(point);
 
     }
-    // else
-    // {
-    //     trajectory_msgs::JointTrajectoryPoint point;
-    //     point.positions = {m_goal_region_plan(i,0),m_goal_region_plan(i,1)};
-    //     point.velocities = {m_goal_region_plan(i,2),m_goal_region_plan(i,3)};
-    //     total_traj.points.push_back(point);
-    // }
+    for (int i=0; i<m_goal_region_plan.rows();i++)
+    {
+        trajectory_msgs::JointTrajectoryPoint point;
+        point.positions = {m_goal_region_plan(i,0),m_goal_region_plan(i,1)};
+        point.velocities = {m_goal_region_plan(i,2),m_goal_region_plan(i,3)};
+        total_traj.points.push_back(point);
+    }
+    cout<<"Traj size: "<<total_traj.points.size();
     m_traj_pub.publish(total_traj);
 }
 
@@ -101,9 +108,13 @@ void AV_Planner::run()
     Global_State startS = Global_State(-15, 30, 3*PI/2);
     Global_State goalS = Global_State(-54.12901306152344, -2.4843921661376953, 0);
     set_global_plan(startS, goalS);
+    plan_to_goal(m_global_plan[m_global_plan.size()-5], goalS); // Change when local plan is needed
+    // plan_to_goal(startS, goalS);
+    
   // Run global planner for vehicle and get set global state waypoints
   // Run local planner on global plan
   // Publish waypoints
+    publishTrajectory();
 }
 int main(int argc, char **argv)
 {
@@ -118,7 +129,10 @@ int main(int argc, char **argv)
   ros::Rate loop_rate(10);
   while (ros::ok())
   {
-    planner_obj.publishTrajectory();
+    int a = 1;
+    if (a==1){
+      a++;
+    }
     // NodeState strt = {0,0,0,1,1,0,0,0};
     // NodeState goal = {2,2,0,1,1,0,0,0};
     // LocalPlanner loc(5,strt,goal);
