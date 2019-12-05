@@ -28,6 +28,7 @@ class AV_Planner
     void set_global_plan(Global_State startS, Global_State goalS);
     void set_final_plan(); // populates m_reference_trajectory
     void publishTrajectory();
+    void plan_to_goal(Global_State a, Global_State b);
     void run();
 
 };

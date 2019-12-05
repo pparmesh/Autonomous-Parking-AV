@@ -22,9 +22,12 @@ void LocalPlanner::setCtrlFreq(double new_ctrl_freq) { m_ctrl_freq = new_ctrl_fr
 
 double LocalPlanner::getMaxPlanningTime()
 {
+    // double planning_time_x = abs(m_node_end.x - m_node_start.x)/m_node_start.vx;
+    // double planning_time_y = abs(m_node_end.y - m_node_start.y)/m_node_start.vy;
+    // return max(planning_time_x,planning_time_y);
     double planning_time_x = abs(m_node_end.x - m_node_start.x)/m_node_start.vx;
-    double planning_time_y = abs(m_node_end.y - m_node_start.y)/m_node_start.vy;
-    return max(planning_time_x,planning_time_y);
+    return planning_time_x;
+
 }
 
 // Member function to get coeffs of polynomials for trajectory
@@ -35,6 +38,7 @@ MatrixXd LocalPlanner::getPolynomialCoefficients()
     // y = a0 + a1*t + a2*t^2 + a3*t^3 + a4*t^4 + a5*t^5
     // Given initial and final values in pos, vel and acc 
     double T = getMaxPlanningTime();
+    cout<<"TIME: "<<T<<endl;
     // Position
     double xi  = m_node_start.x;
     double yi = m_node_start.y;

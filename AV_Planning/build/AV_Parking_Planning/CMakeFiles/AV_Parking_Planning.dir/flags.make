@@ -6,5 +6,5 @@ CXX_FLAGS = -fPIC   -std=c++11
 
 CXX_DEFINES = -DAV_Parking_Planning_EXPORTS -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\"AV_Parking_Planning\"
 
-CXX_INCLUDES = -I/home/gauss/Carla_096/AV_Planning/AV_Planning/src/AV_Parking_Planning/include -I/opt/ros/kinetic/include -I/opt/ros/kinetic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp 
+CXX_INCLUDES = -I/home/prateek/fall_19/16782/AV_Planning/AV_Planning/src/AV_Parking_Planning/include -I/opt/ros/kinetic/include -I/opt/ros/kinetic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp 
 
