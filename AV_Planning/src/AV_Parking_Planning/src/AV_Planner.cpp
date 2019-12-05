@@ -64,14 +64,14 @@ void AV_Planner::set_global_plan(Global_State startS, Global_State goalS)
     return;
   
 }
-void AV_Planner::plan_to_goal(Global_State pre_goal, Global_State goal)
-{
-  NodeState pre_goal_node = {pre_goal.x, pre_goal.y, pre_goal.theta, 2, 0, 0, 0, 0};
-  NodeState goal_node = {goal.x, goal.y, goal.theta, 0, 0, 0, 0, 0};
-  LocalPlanner loc(m_ctrl_freq, pre_goal_node, goal_node);
-  MatrixXd coef = loc.getPolynomialCoefficients();
-  m_goal_region_plan = loc.generateLocalPlan();
-}
+// void AV_Planner::plan_to_goal(Global_State pre_goal, Global_State goal)
+// {
+//   NodeState pre_goal_node = {pre_goal.x, pre_goal.y, pre_goal.theta, 2, 0, 0, 0, 0};
+//   NodeState goal_node = {goal.x, goal.y, goal.theta, 0, 0, 0, 0, 0};
+//   LocalPlanner loc(m_ctrl_freq, pre_goal_node, goal_node);
+//   MatrixXd coef = loc.getPolynomialCoefficients();
+//   m_goal_region_plan = loc.generateLocalPlan();
+// }
 
 void AV_Planner::publishTrajectory()
 {
@@ -85,13 +85,13 @@ void AV_Planner::publishTrajectory()
       total_traj.points.push_back(point);
 
     }
-    else
-    {
-        trajectory_msgs::JointTrajectoryPoint point;
-        point.positions = {m_goal_region_plan(i,0),m_goal_region_plan(i,1)};
-        point.velocities = {m_goal_region_plan(i,2),m_goal_region_plan(i,3)};
-        total_traj.points.push_back(point);
-    }
+    // else
+    // {
+    //     trajectory_msgs::JointTrajectoryPoint point;
+    //     point.positions = {m_goal_region_plan(i,0),m_goal_region_plan(i,1)};
+    //     point.velocities = {m_goal_region_plan(i,2),m_goal_region_plan(i,3)};
+    //     total_traj.points.push_back(point);
+    // }
     m_traj_pub.publish(total_traj);
 }
 
