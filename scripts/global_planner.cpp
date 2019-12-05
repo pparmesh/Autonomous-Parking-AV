@@ -555,7 +555,7 @@ bool GlobalPlanner::CollisionCheck(Global_State st, MotionPrimitive motion, OccG
                 if(obs_map[i][j]==0)
                     continue;
                 double d = sqrt((ic[p][0]-i)*(ic[p][0]-i) + (ic[p][1]-j)*(ic[p][1]-j));
-                if(d<=1.05)
+                if(d<=1.1)
                     return 1;
             }
         }
@@ -851,16 +851,54 @@ void OccGrid::update_static_occ(vector<int> veh_i, int full)
 vector<double> OccGrid::pBoxlim(Global_State ploc)
 {
     // Function to compute the parking box limits [x,y] 
+    double wid = w/2;
     double x = ploc.x;
     double y = ploc.y;
-    double thet = abs(ploc.theta);
+    double thet = wrap2pi(ploc.theta);
     vector<double> xy;
-    if(thet>=3.14)
-        thet = 0;
-    xy.push_back(x - cos(thet)*(l/2) - sin(thet)*(w/2));
-    xy.push_back(x + cos(thet)*(l/2) + sin(thet)*(w/2));
-    xy.push_back(y - cos(thet)*(w/2) - sin(thet)*(l/2));
-    xy.push_back(y + cos(thet)*(w/2) + sin(thet)*(l/2));
+    
+    double ax = x + lf*cos(thet) + wid*sin(thet);
+    double bx = x + lf*cos(thet) - wid*sin(thet);
+    double cx = x - lb*cos(thet) - wid*sin(thet);
+    double dx = x - lb*cos(thet) + wid*sin(thet);
+    double ay = y + lf*sin(thet) - wid*cos(thet);
+    double by = y + lf*sin(thet) + wid*cos(thet);
+    double cy = y - lb*sin(thet) + wid*cos(thet);
+    double dy = y - lb*sin(thet) - wid*cos(thet);
+
+    if(thet == 0)
+    {
+        xy.push_back(cx);
+        xy.push_back(bx);
+        xy.push_back(dy);
+        xy.push_back(cy);
+    }
+    else if(thet <= (0.1+PI/2))
+    {
+        xy.push_back(bx);
+        xy.push_back(ax);
+        xy.push_back(dy);
+        xy.push_back(ay);
+    }
+    else if(thet <= (0.1 + PI))
+    {
+        xy.push_back(bx);
+        xy.push_back(cx);
+        xy.push_back(by);
+        xy.push_back(ay);
+    }
+    else
+    {
+        xy.push_back(ax);
+        xy.push_back(bx);
+        xy.push_back(ay);
+        xy.push_back(dy);
+    }
+
+    // xy.push_back(x - cos(thet)*(l/2) - sin(thet)*(w/2));
+    // xy.push_back(x + cos(thet)*(l/2) + sin(thet)*(w/2));
+    // xy.push_back(y - cos(thet)*(w/2) - sin(thet)*(l/2));
+    // xy.push_back(y + cos(thet)*(w/2) + sin(thet)*(l/2));
     return xy;
 }
 
@@ -1106,7 +1144,7 @@ int main()
     // instantanting the occupance grid...........
     OccGrid occ(dx, dy);
     occ.generate_static_occ(parkV);
-    // occ.occ_map_publish("occupancy.csv");
+    occ.occ_map_publish("occupancy.csv");
 
     // ---------Checking if the goal state is empty----------------------
     vector <int> ind = g_planner.xy2i(goalS);

@@ -17,7 +17,8 @@ def wraptopi(a):
 class Map():
 	def __init__(self, ddx, ddy):
 		self.w = 2.7572021484375
-		self.l = 5.142044059999996
+		self.lb = 5.142044059999996/2
+		self.lf = 6-self.lb
 		self.xlim = [-62,30]
 		self.ylim = [-40, 40]
 		self.dx = ddx
@@ -30,7 +31,8 @@ class Map():
 
 	def plot_parking(self):
 		w = self.w
-		l = self.l
+		lf = self.lf
+		lb = self.lb
 
 		a = self.spawn_points
 		x = a[:,0]
@@ -40,10 +42,10 @@ class Map():
 		for i in range(len(a)):
 			ang = wraptopi(np.pi*theta[i]/180)
 			# print(theta[i], ang)
-			a = [x[i]+(l/2)*cos(ang)+(w/2)*sin(ang), y[i]+(l/2)*sin(ang)-(w/2)*cos(ang)]
-			b = [x[i]+(l/2)*cos(ang)-(w/2)*sin(ang), y[i]+(l/2)*sin(ang)+(w/2)*cos(ang)]
-			c = [x[i]-(l/2)*cos(ang)-(w/2)*sin(ang), y[i]-(l/2)*sin(ang)+(w/2)*cos(ang)]
-			d = [x[i]-(l/2)*cos(ang)+(w/2)*sin(ang), y[i]-(l/2)*sin(ang)-(w/2)*cos(ang)]
+			a = [x[i]+lf*cos(ang)+(w/2)*sin(ang), y[i]+lf*sin(ang)-(w/2)*cos(ang)]
+			b = [x[i]+lf*cos(ang)-(w/2)*sin(ang), y[i]+lf*sin(ang)+(w/2)*cos(ang)]
+			c = [x[i]-lb*cos(ang)-(w/2)*sin(ang), y[i]-lb*sin(ang)+(w/2)*cos(ang)]
+			d = [x[i]-lb*cos(ang)+(w/2)*sin(ang), y[i]-lb*sin(ang)-(w/2)*cos(ang)]
 			plt.plot([b[0], c[0], d[0], a[0]], [b[1], c[1], d[1], a[1]],'b')
 
 	def xy2i(self, px, py):
@@ -62,10 +64,13 @@ class Map():
 		Spawn Points queried from the Carla Map "Parking1"
 		"""
 		w = self.w
-		l = self.l
+		lf = self.lf
+		lb = self.lb
 		dx = self.dx
 		dy = self.dy
 		spts = self.spawn_points
+		x = spts[:,0]
+		y = spts[:,1]
 		cp=1;
 
 		nx, ny = int((self.xlim[1]-self.xlim[0])/dx), int((self.ylim[1]-self.ylim[0])/dy)
@@ -85,11 +90,33 @@ class Map():
 			else:
 				cp=20
 				# continue
-			ang = wrap2pi(abs(spts[i,2]*np.pi/180))
+			# ang = wrap2pi(abs(spts[i,2]*np.pi/180))
+			ang = wraptopi(np.pi*spts[i,2]/180)
 			# ang = spts[i,2]*np.pi/180
+			a = [x[i]+lf*cos(ang)+(w/2)*sin(ang), y[i]+lf*sin(ang)-(w/2)*cos(ang)]
+			b = [x[i]+lf*cos(ang)-(w/2)*sin(ang), y[i]+lf*sin(ang)+(w/2)*cos(ang)]
+			c = [x[i]-lb*cos(ang)-(w/2)*sin(ang), y[i]-lb*sin(ang)+(w/2)*cos(ang)]
+			d = [x[i]-lb*cos(ang)+(w/2)*sin(ang), y[i]-lb*sin(ang)-(w/2)*cos(ang)]
+			# a = [x[i]+lf*cos(ang)+(w/2)*sin(ang), x[i]+lf*cos(ang)-(w/2)*sin(ang),
+			# x[i]-lb*cos(ang)-(w/2)*sin(ang), x[i]-lb*cos(ang)+(w/2)*sin(ang)]
 
-			pl_x = [spts[i,0]-(l/2)*np.cos(ang)-(w/2)*np.sin(ang),spts[i,0]+(l/2)*np.cos(ang)+(w/2)*np.sin(ang)]
-			pl_y = [spts[i,1]-(w/2)*np.cos(ang)-(l/2)*np.sin(ang), spts[i,1]+(w/2)*np.cos(ang)+(l/2)*np.sin(ang)]
+			# b = [y[i]+lf*sin(ang)-(w/2)*cos(ang), y[i]+lf*sin(ang)+(w/2)*cos(ang),
+			#  y[i]-lb*sin(ang)+(w/2)*cos(ang), y[i]-lb*sin(ang)-(w/2)*cos(ang)]
+
+			# pl_x = [spts[i,0]-lb*np.cos(ang)-(w/2)*np.sin(ang),spts[i,0]+lf*np.cos(ang)+(w/2)*np.sin(ang)]
+			# pl_y = [spts[i,1]-(w/2)*np.cos(ang)-lb*np.sin(ang), spts[i,1]+(w/2)*np.cos(ang)+lf*np.sin(ang)]
+			if(ang == 0):
+				pl_x = [c[0], b[0]]
+				pl_y = [d[1], c[1]]
+			elif (ang <= (0.1+np.pi/2)):
+				pl_x = [b[0], a[0]]
+				pl_y = [d[1], a[1]]
+			elif ang <= (0.1+np.pi):
+				pl_x = [b[0], c[0]]
+				pl_y = [b[1], a[1]]
+			else:
+				pl_x = [a[0], b[0]]
+				pl_y = [a[1], d[1]]
 			# print(i, pl_x, pl_y, ang)
 			# Computing the occupancy grid indices
 			occX, occY = self.xy2i(pl_x, pl_y)
@@ -105,10 +132,13 @@ class Map():
 		Spawn Points queried from the Carla Map "Parking1"
 		"""
 		w = self.w
-		l = self.l
+		lf = self.lf
+		lb = self.lb
 		dx = self.dx
 		dy = self.dy
 		spts = self.spawn_points
+		x = spts[:,0]
+		y = spts[:,1]
 		cp=1;
 
 		nx, ny = int((self.xlim[1]-self.xlim[0])/dx), int((self.ylim[1]-self.ylim[0])/dy)
@@ -129,16 +159,24 @@ class Map():
 				cp=20
 				# continue
 			ang = wraptopi(np.pi*spts[i,2]/180)
-			# ang = wrap2pi(abs(spts[i,2]*np.pi/180))
-			# ang = spts[i,2]*np.pi/180
-
-			pl_x = [spts[i,0]-(l/2)*np.cos(ang)-(w/2)*np.sin(ang),spts[i,0]+(l/2)*np.cos(ang)+(w/2)*np.sin(ang)]
-			pl_y = [spts[i,1]-(w/2)*np.cos(ang)-(l/2)*np.sin(ang), spts[i,1]+(w/2)*np.cos(ang)+(l/2)*np.sin(ang)]
-			# print(i, pl_x, pl_y, ang)
-			# Computing the occupancy grid indices
+			a = [x[i]+lf*cos(ang)+(w/2)*sin(ang), y[i]+lf*sin(ang)-(w/2)*cos(ang)]
+			b = [x[i]+lf*cos(ang)-(w/2)*sin(ang), y[i]+lf*sin(ang)+(w/2)*cos(ang)]
+			c = [x[i]-lb*cos(ang)-(w/2)*sin(ang), y[i]-lb*sin(ang)+(w/2)*cos(ang)]
+			d = [x[i]-lb*cos(ang)+(w/2)*sin(ang), y[i]-lb*sin(ang)-(w/2)*cos(ang)]
+			if(ang == 0):
+				pl_x = [c[0], b[0]]
+				pl_y = [d[1], c[1]]
+			elif (ang <= (0.1+np.pi/2)):
+				pl_x = [b[0], a[0]]
+				pl_y = [d[1], a[1]]
+			elif ang <= (0.1+np.pi):
+				pl_x = [b[0], c[0]]
+				pl_y = [b[1], a[1]]
+			else:
+				pl_x = [a[0], b[0]]
+				pl_y = [a[1], d[1]]
 			occX, occY = self.xy2i(pl_x, pl_y)
 			occ_grid[occX, occY]=cp
-
 		# plt.imshow(occ_grid.T, "Greys")
 		return occ_grid
 
@@ -203,14 +241,7 @@ if __name__=='__main__':
 	plt.show()
 	# map1.compute_swath()
 	map1.occupancy_grid()
-	# p=map1.spawn_points[2]
-	# print(p)
-	# l=map1.l
-	# w=map1.w
-	# ang=p[-1]*np.pi/180
-	# x1, x2 = p[0]-(l/2)*np.cos(ang)-(w/2)*np.sin(ang),p[0]+(l/2)*np.cos(ang)+(w/2)*np.sin(ang)
-	# y1, y2 =p[1]-(w/2)*np.cos(ang)-(l/2)*np.sin(ang), p[1]+(w/2)*np.cos(ang)+(l/2)*np.sin(ang)
-	# print(x1,y1)
-	# print(x2,y2)
-	# dd=map1.xy2i([x1,x2], [y1,y2])
-	# print(dd)
+	
+	# ddc = map1.compute_occupancy_grid([59, 48, 39, 44, 10, 70])
+	# plt.imshow(ddc.T, 'Greys' , origin='lower')
+	# plt.show()

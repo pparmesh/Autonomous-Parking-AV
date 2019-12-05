@@ -95,7 +95,8 @@ class parking
 class OccGrid
 {
     private:
-        double l = 5.142044059999996;   // Dimensions of each parking space
+        double lb = 5.142044059999996/2;
+        double lf = 5.142044059999996-lb;   // Dimensions of each parking space
         double w = 2.7572021484375;     // dimensions of each parking space
         double xlim[2] = {-62, 30};
         double ylim[2] = {-40, 40};
@@ -125,6 +126,15 @@ class OccGrid
         void update_static_occ(vector <int> veh_i, int full);
         vector<vector<int>> get_occmap();
         void occ_map_publish(string file_name);
+        double wrap2pi(double angle)
+        {
+            // Function to wrap the angles between 0 and 2pi
+            angle = fmod(angle, 2*PI);
+            if(angle < 0)
+                angle+=2*PI;
+
+            return angle;
+        }
 
 };
 // --------___________-------------___________------_______________----_____----
