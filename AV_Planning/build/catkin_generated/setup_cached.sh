@@ -7,9 +7,6 @@
 # new environment variables
 
 # modified environment variables
-export CMAKE_PREFIX_PATH="/home/prateek/fall_19/16782/AV_Planning/AV_Planning/devel:$CMAKE_PREFIX_PATH"
-export LD_LIBRARY_PATH="/home/prateek/fall_19/16782/AV_Planning/AV_Planning/devel/lib:$LD_LIBRARY_PATH"
-export PKG_CONFIG_PATH="/home/prateek/fall_19/16782/AV_Planning/AV_Planning/devel/lib/pkgconfig:$PKG_CONFIG_PATH"
-export PWD="/home/prateek/fall_19/16782_Project/AV_Planning/AV_Planning/build"
-export ROSLISP_PACKAGE_DIRECTORIES="/home/prateek/fall_19/16782/AV_Planning/AV_Planning/devel/share/common-lisp:$ROSLISP_PACKAGE_DIRECTORIES"
-export ROS_PACKAGE_PATH="/home/prateek/fall_19/16782/AV_Planning/AV_Planning/src:/home/prateek/fall_19/16782_Project/AV_Planning/AV_Planning/src:$ROS_PACKAGE_PATH"
+export LD_LIBRARY_PATH="/opt/ros/kinetic/lib:/opt/ros/kinetic/lib/x86_64-linux-gnu"
+export PKG_CONFIG_PATH="/opt/ros/kinetic/lib/pkgconfig:/opt/ros/kinetic/lib/x86_64-linux-gnu/pkgconfig"
+export PWD="/home/gauss/Carla_096/AV_Planning/AV_Planning/build"

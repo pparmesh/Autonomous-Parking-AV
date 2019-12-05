@@ -71,6 +71,9 @@ def plot_swath(startS, goalS):
 
 	plt.xlim(xlim[0], xlim[1])
 	plt.ylim(ylim[0], ylim[1])
+
+	# plotting the path
+	plt.plot(f[:,0], f[:,1], 'blue')
 	
 	plt.show()
 

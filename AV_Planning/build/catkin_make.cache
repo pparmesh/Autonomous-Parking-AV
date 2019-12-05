@@ -1,2 +1,2 @@
 AV_Parking_Planning
--DCATKIN_DEVEL_PREFIX=/home/prateek/fall_19/16782/AV_Planning/AV_Planning/devel -DCMAKE_INSTALL_PREFIX=/home/prateek/fall_19/16782/AV_Planning/AV_Planning/install -G Unix Makefiles
+-DCATKIN_DEVEL_PREFIX=/home/gauss/Carla_096/AV_Planning/AV_Planning/devel -DCMAKE_INSTALL_PREFIX=/home/gauss/Carla_096/AV_Planning/AV_Planning/install -G Unix Makefiles

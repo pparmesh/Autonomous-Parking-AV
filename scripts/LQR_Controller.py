@@ -119,13 +119,14 @@ class Controller2D(object):
         x=waypoints[:,0]
         y=waypoints[:,1]
         sig=10
-        xp = scipy.ndimage.filters.gaussian_filter1d(input=y,sigma=sig,order=1)
-        xpp = scipy.ndimage.filters.gaussian_filter1d(input=y,sigma=sig,order=2)
+        xp = scipy.ndimage.filters.gaussian_filter1d(input=x,sigma=sig,order=1)
+        xpp = scipy.ndimage.filters.gaussian_filter1d(input=x,sigma=sig,order=2)
         yp = scipy.ndimage.filters.gaussian_filter1d(input=y,sigma=sig,order=1)
         ypp = scipy.ndimage.filters.gaussian_filter1d(input=y,sigma=sig,order=2)
         curv=np.zeros(len(waypoints))
         for i in range(len(xp)):
-            curv[i] = (xp[i]*ypp[i] - yp[i]*xpp[i])/(xp[i]**2 + yp[i]**2)**1.5
+            curv[i] = ((xp[i]*ypp[i] - yp[i]*xpp[i])/(xp[i]**2 + yp[i]**2)**1.5)
+
         # x1=gaussian_filter1d(x,sigma=sig,order=1,mode="wrap")
         # x2=gaussian_filter1d(x1,sigma=sig,order=1,mode="wrap")
         # y1=gaussian_filter1d(y,sigma=sig,order=1,mode="wrap")
@@ -156,8 +157,8 @@ class Controller2D(object):
         vX              = self._current_vX
         vY=-self._current_vY
         
-        # dt=self._dt   #fixed time step dt for fps 3-
-        dt=time.time()-self._t  #  Variable time step dt
+        dt=self._dt   #fixed time step dt for fps 3-
+        # dt=time.time()-self._t  #  Variable time step dt
         # print(dt)
 
         d_yaw=(yaw-self._last_yaw)/dt
@@ -193,7 +194,7 @@ class Controller2D(object):
 
                 D=[[0],[0],[0],[0]]
 
-                Q=[[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
+                Q=[[1,0,0,0],[0,1,0,0],[0,0,100,0],[0,0,0,1]]
                 
                 R=10
 
@@ -227,7 +228,6 @@ class Controller2D(object):
                 #  Computing the desired yaw 
                 yaw_desired=np.arctan2((waypoints[min_idx+idx_fwd,1]-y),(waypoints[min_idx+idx_fwd,0]-x))
                 d_yaw_desired=vx*curv[min_idx+idx_ld_curv]
-              
                 e=np.zeros(4)
                 
                 # Computing the state errors
@@ -235,6 +235,7 @@ class Controller2D(object):
                 e[2]=self.wrap2pi(yaw-yaw_desired)
                 e[1]=vy+vx*e[2]
                 e[3]=d_yaw-d_yaw_desired
+                # print(e)
 
                 error=np.matrix(e)
 
@@ -244,7 +245,7 @@ class Controller2D(object):
 
 
 
-                V_n = 3
+                V_n = 2
                 # -----Bang Bang Longitudanal Control------------
                 if np.linalg.norm(np.array([vx,vy]))<V_n:
                     throttle_output=1.0

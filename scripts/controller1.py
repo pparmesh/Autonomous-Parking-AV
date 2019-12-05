@@ -57,7 +57,7 @@ class controller1():
         spawn_point1.location.y=self.ref_traj[0,1]
         spawn_point1.location.z=5
         spawn_point1.rotation.pitch=0.00193294
-        spawn_point1.rotation.yaw=self.ref_traj[0,2]
+        spawn_point1.rotation.yaw=180*self.ref_traj[0,2]/np.pi
         spawn_point1.rotation.roll=-0.00494385
 
         self.spawn_point=spawn_point1
@@ -106,7 +106,7 @@ class controller1():
                 self._render(self.world)
             
             try:
-                empty_lot = [59, 48, 39, 44, 10, 70] #np.arange(20, 109)  #[59, 48, 33, 38, 39,44, 70, 10, 11, 12, 15]
+                empty_lot = [59, 48, 33, 38, 39,44, 70, 10, 11, 12, 15]
                 batch = self.spawn_parkV(empty_lot)
                 client.apply_batch(batch)
             except RuntimeError:
