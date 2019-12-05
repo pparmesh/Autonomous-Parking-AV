@@ -175,20 +175,23 @@ void GlobalPlanner::generate_motion_primitives()
 void GlobalPlanner::generate_cc(MotionPrimitive& sw, Global_State st, int& i)
 {
 	// Function to add the circle centers for all the states in the current motion primitive.
-	double x1 = st.x;
+	double x0 = start_state.x;
+    double y0 = start_state.y;
+
+    double x1 = st.x;
 	double y1 = st.y ;
 	double ang = wrap2pi(st.theta);
 
 	double x2 = x1 - cos(ang);
 	double y2 = y1 - sin(ang);
 	sw.insert_state(Global_State(x2, y2, ang));
-	sw_M.col(i)<<x2-x1, y2-y1, 1.0;
+	sw_M.col(i)<<x2-x0, y2-y0, 1.0;
 	++i;
 
 	x2 = x1 +cos(ang);
 	y2 = y1+ sin(ang);
 	sw.insert_state(Global_State(x2, y2, ang));
-	sw_M.col(i)<<x2-x1, y2-y1, 1.0;
+	sw_M.col(i)<<x2-x0, y2-y0, 1.0;
 	++i;
 }
 
@@ -202,7 +205,7 @@ void GlobalPlanner::PrecomputeCost(vector<double> steerF, vector<double> steerB)
         if(delta == 0)
             cost = 1;   
         else
-            cost = 15*abs(delta); 
+            cost = 10*abs(delta); 
         // cost = abs(delta)*180/PI;
         cost_of_motion.push_back(cost);  
     cout<<"detla: "<<delta<<", cost: "<<cost<<endl;
@@ -544,7 +547,7 @@ bool GlobalPlanner::CollisionCheck(Global_State st, MotionPrimitive motion, OccG
     // int y2 = min(mapY, state[1] + 30)   ;
     int x1, x2, y1, y2;
     int roi = 30;
-    double eps = 1.2;
+    double eps = 1.2/0.2;
     for(Global_State ds : m_step)
     {
         vector <int> state = xy2i(ds);
@@ -559,7 +562,7 @@ bool GlobalPlanner::CollisionCheck(Global_State st, MotionPrimitive motion, OccG
                 if(obs_map[i][j] == 0)
                     continue;
                 double d = sqrt((state[0]-i)*(state[0]-i) + (state[1]-j)*(state[1]-j));
-                if(d < (eps/dx))
+                if(d < eps)
                     return 1;
             }
         }
@@ -793,11 +796,12 @@ void GlobalPlanner::print_primitives(vector<MotionPrimitive> mpd)
 void GlobalPlanner::motion_primitive_writer(vector<MotionPrimitive> mpd, string file_name)
 {
     // Converting the vector of MotionPrimitives into a 2d Vector.
-    vector< vector<double>> pmap (num_steps, vector<double> {0});
+    int n = mpd[0].get_primitive().size();
+    vector< vector<double>> pmap (n, vector<double> {0});
     for(MotionPrimitive m : mpd)
     {
         vector<Global_State> mj = m.get_primitive();
-        cout<<mj.size()<<endl;
+        // cout<<mj.size()<<endl;
         if (mj.size() < 8)
             continue;       // ignoring the motion primitives with the 8 steps curently
         for(int e=0;e<mj.size();++e)
@@ -1157,7 +1161,7 @@ int main()
     g_planner.generate_motion_primitives();
 
     parking parkV;
-    parkV.reserve_spot({59, 48, 39, 44, 10, 70}); // Setting parking lot as empty
+    parkV.reserve_spot({59, 48, 39, 44, 10}); // Setting parking lot as empty
 
     // instantanting the occupance grid...........
     OccGrid occ(dx, dy);
@@ -1167,18 +1171,20 @@ int main()
     // ---------Checking if the goal state is empty----------------------
     vector <int> ind = g_planner.xy2i(goalS);
     if(occ.isEmpty(ind[0], ind[1]))
-        cout<<"Vehicle can be parked at the goal state \n";
+        cout<<"-------->> Vehicle can be parked at the goal state \n";
     else
     {
-        cout<<"Vehicle cannot be parked at the goal stare, Exiting........\n";
+        cout<<"-------->> Vehicle cannot be parked at the goal stare, Exiting........\n";
         return 0;
     }
 
     // g_planner.motion_primitive_writer(g_planner.startS_primitives(), "startS.csv");
     // vector <MotionPrimitive> pp = g_planner.transform_primitive(goalS);
     // cout<<"+++\n+++++++++\n+++++++++"<<endl;
+    // // g_planner.motion_primitive_writer(g_planner.swath_p, "swath.csv");
     // g_planner.motion_primitive_writer(pp, "goalS.csv");
-    
+    // vector <MotionPrimitive> ppa = g_planner.transform_swath(goalS);
+    // g_planner.motion_primitive_writer(ppa, "swath.csv");
     // g_planner.print_primitives(pp);
 
     // Pre-Computing the 2D heuristic....
