@@ -150,27 +150,27 @@ void GlobalPlanner::generate_motion_primitives()
   
 }
 
-vector<MotionPrimitive> GlobalPlanner::generate_c(vector<MotionPrimitive> steps)
-{
-    vector <MotionPrimitive> omap;
-    for(MotionPrimitive a : steps)
-    {
-        MotionPrimitive p;
-        vector<Global_State> pp = a.get_primitive();
-        for(Global_State ap : pp)
-        {
-            double x = ap.x;
-            double y = ap.y;
-            double ang = wrap2pi(ap.theta);
+// vector<MotionPrimitive> GlobalPlanner::generate_c(vector<MotionPrimitive> steps)
+// {
+//     vector <MotionPrimitive> omap;
+//     for(MotionPrimitive a : steps)
+//     {
+//         MotionPrimitive p;
+//         vector<Global_State> pp = a.get_primitive();
+//         for(Global_State ap : pp)
+//         {
+//             double x = ap.x;
+//             double y = ap.y;
+//             double ang = wrap2pi(ap.theta);
 
-            p.insert_state(Global_State(x-cos(ang), y-sin(ang), ang));
-            p.insert_state(Global_State(x+cos(ang), y+sin(ang), ang));
-        }
-        omap.push_back(p);
-    }
-    return omap;
+//             p.insert_state(Global_State(x-cos(ang), y-sin(ang), ang));
+//             p.insert_state(Global_State(x+cos(ang), y+sin(ang), ang));
+//         }
+//         omap.push_back(p);
+//     }
+//     return omap;
 
-}
+// }
 
 void GlobalPlanner::generate_cc(MotionPrimitive& sw, Global_State st, int& i)
 {
@@ -427,7 +427,7 @@ vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
     // Computing the relative transformation (rotation and translation) between the two motion primitive frames.
     double dx = n_st.x - start_state.x;
     double dy = n_st.y - start_state.y;
-    double dtheta = n_st.theta - start_state.theta;
+    double dtheta = wrap2pi(n_st.theta - start_state.theta);
 
 
     // Formulating the transformation matrix
@@ -465,7 +465,7 @@ vector<MotionPrimitive> GlobalPlanner::transform_swath(Global_State n_st)
 	// ++++++++++++++++++++++++Function to tranform (translate + rotate) te circle centers for swath generation
 	double dx = n_st.x - start_state.x;
 	double dy = n_st.y - start_state.y;
-	double dtheta = n_st.theta - start_state.theta;
+	double dtheta = wrap2pi(n_st.theta - start_state.theta);
 
 	// Formulating the transformation matrix.......
 	Matrix <double, 3, 3>   M;
@@ -474,7 +474,7 @@ vector<MotionPrimitive> GlobalPlanner::transform_swath(Global_State n_st)
 		0, 0, 1;
 
 	const int nmp = 21;		// number of motion primitives
-	Matrix<double, 3, num_steps*4*nmp> n_p = M*sw_M;
+	Matrix<double, 3, num_steps*2*nmp> n_p = M*sw_M;
 
 	// Converting the matrix to a vector of motion primitives
 	vector <MotionPrimitive> smap;
@@ -535,31 +535,49 @@ bool GlobalPlanner::CollisionCheck(Global_State st, MotionPrimitive motion, OccG
     // }
 
     // Collision check for swath..........................
-    vector< vector<int>> ic;
-    for(Global_State stg : m_step)
-    	ic.push_back(xy2i(stg));
 
     vector <vector<int>> obs_map = ocmap.get_occmap();
-    vector<int> state = xy2i(st);
-    int x1 = max(0, state[0]-20);
-    int x2 = min(mapX, state[0] + 20);
-    int y1 = max(0, state[1]-20);
-    int y2 = min(mapY, state[1] + 20)   ;
-
-    for(int i=x1;i<x2;++i)
+    // vector<int> state = xy2i(st);
+    // int x1 = max(0, state[0]-30);
+    // int x2 = min(mapX, state[0] + 30);
+    // int y1 = max(0, state[1]-30);
+    // int y2 = min(mapY, state[1] + 30)   ;
+    int x1, x2, y1, y2;
+    int roi = 30;
+    double eps = 1.2;
+    for(Global_State ds : m_step)
     {
-        for(int j=y1; j<y2;++j)
+        vector <int> state = xy2i(ds);
+        x1 = max(0, state[0]-roi);
+        x2 = min(mapX, state[0]+roi);
+        y1 = max(0, state[1]-roi);
+        y2 = min(mapY, state[1]+roi);
+        for(int i=x1; i<x2; ++i)
         {
-            for(int p = 0;p<ic.size();++p)
+            for(int j=y1; j<y2; ++j)
             {
-                if(obs_map[i][j]==0)
+                if(obs_map[i][j] == 0)
                     continue;
-                double d = sqrt((ic[p][0]-i)*(ic[p][0]-i) + (ic[p][1]-j)*(ic[p][1]-j));
-                if(d<=1.1)
+                double d = sqrt((state[0]-i)*(state[0]-i) + (state[1]-j)*(state[1]-j));
+                if(d < (eps/dx))
                     return 1;
             }
         }
-    }    
+    }
+    // for(int i=x1;i<x2;++i)
+    // {
+    //     for(int j=y1; j<y2;++j)
+    //     {
+    //         for(int p = 0;p<ic.size();++p)
+    //         {
+    //             if(obs_map[i][j]==0)
+    //                 continue;
+    //             double d = sqrt((ic[p][0]-i)*(ic[p][0]-i) + (ic[p][1]-j)*(ic[p][1]-j));
+    //             if(d<=1.2)
+    //                 return 1;
+    //         }
+    //     }
+    // }    
 
     return 0;
 }
@@ -1144,7 +1162,7 @@ int main()
     // instantanting the occupance grid...........
     OccGrid occ(dx, dy);
     occ.generate_static_occ(parkV);
-    occ.occ_map_publish("occupancy.csv");
+    // occ.occ_map_publish("occupancy.csv");
 
     // ---------Checking if the goal state is empty----------------------
     vector <int> ind = g_planner.xy2i(goalS);
