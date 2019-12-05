@@ -76,7 +76,7 @@ class Map():
 		
 		# Randomly sampling the empty parking lots
 		n=5		# number of parking spots to leave empty
-		empty_lot=np.random.choice(np.arange(spts.shape[0]), n)
+		empty_lot=[59, 48, 39, 44, 10, 70] #np.random.choice(np.arange(spts.shape[0]), n)
 		print(empty_lot)
 		for i in range(len(spts)):
 			#  Computing the parking bounding boxes
@@ -201,7 +201,7 @@ if __name__=='__main__':
 	map1=Map(0.2, 0.2)
 	map1.plot_parking()
 	plt.show()
-	map1.compute_swath()
+	# map1.compute_swath()
 	map1.occupancy_grid()
 	# p=map1.spawn_points[2]
 	# print(p)

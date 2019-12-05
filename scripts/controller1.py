@@ -106,7 +106,7 @@ class controller1():
                 self._render(self.world)
             
             try:
-                empty_lot = np.arange(20, 109)  #[59, 48, 33, 38, 39,44, 70, 10, 11, 12, 15]
+                empty_lot = [59, 48, 39, 44, 10, 70] #np.arange(20, 109)  #[59, 48, 33, 38, 39,44, 70, 10, 11, 12, 15]
                 batch = self.spawn_parkV(empty_lot)
                 client.apply_batch(batch)
             except RuntimeError:

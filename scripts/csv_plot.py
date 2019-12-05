@@ -74,6 +74,13 @@ def plot_swath(startS, goalS):
 	
 	plt.show()
 
+	# --- Saving the trajectory in .npy file
+	wpt = f
+	wpt[:,1] = -wpt[:,1]
+	wpt[:,2] = -wpt[:,2]
+	np.save('waypoints.npy', wpt)
+	print('Saved the referene trajectory in ............waypoints.npy')
+
 
 
 if __name__ =='__main__':	

@@ -1,6 +1,5 @@
 """
 The LQR controller for lateral control of vehicles in Carla.
-
 Author: Ashish Roongta
 SafeAI lab
 Carnegie Mellon University
@@ -57,7 +56,7 @@ class Controller2D(object):
         self._frame=0.0
         self._last_vx_error=0.0
         self.v_desired=3*np.ones(self._waypoints.shape[0])
-        self.traj_curv = self.curvature(self.waypoints)
+        self.traj_curv = self.curvature(self._waypoints)
 
 
     def update_values(self):
@@ -120,13 +119,18 @@ class Controller2D(object):
         x=waypoints[:,0]
         y=waypoints[:,1]
         sig=10
-        xp = scipy.ndimage.filters.gaussian_filter1d(input=x, sigma=sig, order=1)
-        xpp = scipy.ndimage.filters.gaussian_filter1d(input=x, sigma=sig, order=2)
-        yp = scipy.ndimage.filters.gaussian_filter1d(input=y, sigma=sig, order=1)
-        ypp = scipy.ndimage.filters.gaussian_filter1d(input=y, sigma=sig, order=2)
+        xp = scipy.ndimage.filters.gaussian_filter1d(input=y,sigma=sig,order=1)
+        xpp = scipy.ndimage.filters.gaussian_filter1d(input=y,sigma=sig,order=2)
+        yp = scipy.ndimage.filters.gaussian_filter1d(input=y,sigma=sig,order=1)
+        ypp = scipy.ndimage.filters.gaussian_filter1d(input=y,sigma=sig,order=2)
         curv=np.zeros(len(waypoints))
         for i in range(len(xp)):
             curv[i] = (xp[i]*ypp[i] - yp[i]*xpp[i])/(xp[i]**2 + yp[i]**2)**1.5
+        # x1=gaussian_filter1d(x,sigma=sig,order=1,mode="wrap")
+        # x2=gaussian_filter1d(x1,sigma=sig,order=1,mode="wrap")
+        # y1=gaussian_filter1d(y,sigma=sig,order=1,mode="wrap")
+        # y2=gaussian_filter1d(y1,sigma=sig,order=1,mode="wrap")
+        # curv=np.divide(np.abs(x1*y2-y1*x2),np.power(x1**2+y1**2,3./2))
         return curv
     
     def wrap2pi(self,a):
@@ -163,12 +167,12 @@ class Controller2D(object):
         lf=self._lf
         m=self._m
         # vx,vy=self.d_velocities(dt,x,y,last_x,last_y,yaw)   #callin function to compute the x and y velocites
-        # ################## Compute local velocities vx and vy here--------------------------
         vy=vY*np.cos(yaw)-vX*np.sin(yaw)
         vx=vY*np.sin(yaw)+vX*np.cos(yaw) 
 
         vx=max(vx,0.1)
-        curv=self.traj_curv #computing the curvatue of the reference trajectory at each index
+        # print('vehicle speed={}, vx={},vy={}, yaw={}'.format(v,vx,vy,yaw*180/np.pi))
+        curv=self.traj_curv #self.curvature(waypoints) #computing the curvatue of the reference trajectory at each index
         throttle_output = 0
         steer_output    = 0
         brake_output    = 0
@@ -223,8 +227,7 @@ class Controller2D(object):
                 #  Computing the desired yaw 
                 yaw_desired=np.arctan2((waypoints[min_idx+idx_fwd,1]-y),(waypoints[min_idx+idx_fwd,0]-x))
                 d_yaw_desired=vx*curv[min_idx+idx_ld_curv]
-
-
+              
                 e=np.zeros(4)
                 
                 # Computing the state errors
@@ -241,7 +244,7 @@ class Controller2D(object):
 
 
 
-                V_n=3
+                V_n = 3
                 # -----Bang Bang Longitudanal Control------------
                 if np.linalg.norm(np.array([vx,vy]))<V_n:
                     throttle_output=1.0
@@ -252,15 +255,18 @@ class Controller2D(object):
 
                 # ------Longitudanal PID control-----------
                 # throttle_output,brake_output=self.PID_longitudanal(dt,self.v_desired[min_idx]-vx)
-               
+   
+            if min_idx >= (len(waypoints) -3):
+                throttle_output = 0
+                steer = 0
+                brake_output = 1.0            
             self._controller.throttle=throttle_output
             self._controller.steer=max(-1.0,(min(1.0,steer_output)))
             self._controller.brake=brake_output
             vehicle.apply_control(self._controller)
-            if min_idx==(len(waypoints)-1):
-                return True
-            
-        # self._last_timestamp=t
+            # if min_idx==(len(waypoints)-1):
+            #     return True
+    
         self._last_x=x
         self._last_y=y
         self._last_yaw=yaw
