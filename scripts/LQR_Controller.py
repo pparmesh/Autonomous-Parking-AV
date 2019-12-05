@@ -57,6 +57,7 @@ class Controller2D(object):
         self._frame=0.0
         self._last_vx_error=0.0
         self.v_desired=3*np.ones(self._waypoints.shape[0])
+        self.traj_curv = self.curvature(self.waypoints)
 
 
     def update_values(self):
@@ -119,11 +120,13 @@ class Controller2D(object):
         x=waypoints[:,0]
         y=waypoints[:,1]
         sig=10
-        x1=gaussian_filter1d(x,sigma=sig,order=1,mode="wrap")
-        x2=gaussian_filter1d(x1,sigma=sig,order=1,mode="wrap")
-        y1=gaussian_filter1d(y,sigma=sig,order=1,mode="wrap")
-        y2=gaussian_filter1d(y1,sigma=sig,order=1,mode="wrap")
-        curv=np.divide(np.abs(x1*y2-y1*x2),np.power(x1**2+y1**2,3./2))
+        xp = scipy.ndimage.filters.gaussian_filter1d(input=x, sigma=sig, order=1)
+        xpp = scipy.ndimage.filters.gaussian_filter1d(input=x, sigma=sig, order=2)
+        yp = scipy.ndimage.filters.gaussian_filter1d(input=y, sigma=sig, order=1)
+        ypp = scipy.ndimage.filters.gaussian_filter1d(input=y, sigma=sig, order=2)
+        curv=np.zeros(len(waypoints))
+        for i in range(len(xp)):
+            curv[i] = (xp[i]*ypp[i] - yp[i]*xpp[i])/(xp[i]**2 + yp[i]**2)**1.5
         return curv
     
     def wrap2pi(self,a):
@@ -165,8 +168,7 @@ class Controller2D(object):
         vx=vY*np.sin(yaw)+vX*np.cos(yaw) 
 
         vx=max(vx,0.1)
-        # print('vehicle speed={}, vx={},vy={}, yaw={}'.format(v,vx,vy,yaw*180/np.pi))
-        curv=self.curvature(waypoints) #computing the curvatue of the reference trajectory at each index
+        curv=self.traj_curv #computing the curvatue of the reference trajectory at each index
         throttle_output = 0
         steer_output    = 0
         brake_output    = 0
@@ -197,7 +199,6 @@ class Controller2D(object):
                 # #  Discretizing the state space system
                 sys_disc=sys_cont.to_discrete(dt)
 
-                # A_d,B_d,C_d,D_d,_=scipy.signal.cont2discrete((A,B,C,D),dt=dt)
 
                 A_d=sys_disc.A
                 B_d=sys_disc.B
@@ -222,9 +223,7 @@ class Controller2D(object):
                 #  Computing the desired yaw 
                 yaw_desired=np.arctan2((waypoints[min_idx+idx_fwd,1]-y),(waypoints[min_idx+idx_fwd,0]-x))
                 d_yaw_desired=vx*curv[min_idx+idx_ld_curv]
-                # print('Curvature:---------------------',curv[min_idx+idx_ld_curv])
-                # print('arctan2({}/{})'.format(waypoints[min_idx+idx_fwd,1]-y,waypoints[min_idx+idx_fwd,0]-x),waypoints[min_idx+idx_fwd,0],waypoints[min_idx+idx_fwd,1])
-                # print('Yaw:',yaw,yaw_desired,d_yaw_desired,curv[min_idx+idx_ld_curv])
+
 
                 e=np.zeros(4)
                 
@@ -242,7 +241,7 @@ class Controller2D(object):
 
 
 
-                V_n=6
+                V_n=3
                 # -----Bang Bang Longitudanal Control------------
                 if np.linalg.norm(np.array([vx,vy]))<V_n:
                     throttle_output=1.0
@@ -254,29 +253,13 @@ class Controller2D(object):
                 # ------Longitudanal PID control-----------
                 # throttle_output,brake_output=self.PID_longitudanal(dt,self.v_desired[min_idx]-vx)
                
-            ######################################################
-            # SET CONTROLS OUTPUT
-            ######################################################
-            # self.set_throttle(throttle_output)  # in percent (0 to 1)
-            # self.set_steer(steer_output)        # in rad (-1.22 to 1.22)
-            # self.set_brake(brake_output)        # in percent (0 to 1)
             self._controller.throttle=throttle_output
             self._controller.steer=max(-1.0,(min(1.0,steer_output)))
             self._controller.brake=brake_output
             vehicle.apply_control(self._controller)
             if min_idx==(len(waypoints)-1):
                 return True
-            # print(throttle_output,max(-1.0,min(1.0,steer_output)),brake_output)
-        ######################################################
-        ######################################################
-        # MODULE 7: STORE OLD VALUES HERE (ADD MORE IF NECESSARY)
-        ######################################################
-        ######################################################
-        """
-            Use this block to store old values (for example, we can store the
-            current x, y, and yaw values here using persistent variables for use
-            in the next iteration)
-        """
+            
         # self._last_timestamp=t
         self._last_x=x
         self._last_y=y
