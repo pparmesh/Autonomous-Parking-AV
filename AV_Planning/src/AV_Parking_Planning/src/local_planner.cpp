@@ -1,6 +1,4 @@
 
-// #include "local_waypoints.hpp"
-#include "AV_Parking_Planning/local_planner.hpp"
 #include <eigen3/Eigen/Dense>
 #include <iostream>
 #include <math.h>
@@ -119,15 +117,15 @@ MatrixXd LocalPlanner::generateLocalPlan()
     return reference_trajectory;
 }
 
-int main()
-{
-    int a = 1;
-    NodeState strt = {0,0,0,1,1,0,0,0};
-    // cout<<strt.x;
-    NodeState goal = {2,2,0,1,1,0,0,0};
-    LocalPlanner loc(5,strt,goal);
-    MatrixXd coef = loc.getPolynomialCoefficients();
-    MatrixXd ref = loc.generateLocalPlan();
-    cout<<ref;
-    return 0;
-}
+// int main()
+// {
+//     int a = 1;
+//     NodeState strt = {0,0,0,1,1,0,0,0};
+//     // cout<<strt.x;
+//     NodeState goal = {5,5,0,0,0,0,0,0};
+//     LocalPlanner loc(5,strt,goal);
+//     MatrixXd coef = loc.getPolynomialCoefficients();
+//     MatrixXd ref = loc.generateLocalPlan();
+//     cout<<ref;
+//     return 0;
+// }

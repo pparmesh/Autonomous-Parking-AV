@@ -1,7 +1,8 @@
 #ifndef LOCAL_PLANNER_H
 #define LOCAL_PLANNER_H
 
-#include "local_waypoints.hpp"
+#include "AV_Parking_Planning/local_waypoints.hpp"
+#include "AV_Parking_Planning/local_planner.hpp"
 #include <iostream>
 #include <math.h>
 #include <eigen3/Eigen/Dense>

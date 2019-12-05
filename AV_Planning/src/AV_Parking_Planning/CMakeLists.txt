@@ -36,6 +36,8 @@ include_directories(
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
+  src/AV_Planner.cpp
+  src/global_planner.cpp
   src/local_planner.cpp
 )
 

@@ -17,17 +17,18 @@ class AV_Planner
     
     //
     double m_ctrl_freq; // Controller frequency for local planner
-    GlobalPlanner m_Global_Planner;
     vector<Global_State> m_global_plan;
-    Eigen::MatrixXd m_reference_trajectory;
+    Eigen::MatrixXd m_goal_region_plan;
+    bool m_near_goal;
 
   public:
     AV_Planner();
     // Make callback for Carla publisherto get start, goal and occupancy
     ros::Publisher m_traj_pub;
-    void set_global_plan();
+    void set_global_plan(Global_State startS, Global_State goalS);
     void set_final_plan(); // populates m_reference_trajectory
     void publishTrajectory();
+    void run();
 
 };
 

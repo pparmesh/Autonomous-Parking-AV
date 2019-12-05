@@ -7,11 +7,10 @@
 #include <cfloat>
 #include <unordered_map>
 #include <set>
-#include <Eigen/Dense>
+#include <eigen3/Eigen/Dense>
 #include <fstream>
 
-#define num_stepsL 12
-#define num_stepsS 0
+#define num_steps 12
 #define PI 3.141592654
 #define mapX 460    // xlim [-62, 30]
 #define mapY 400    // ylim [-40,  40]
@@ -20,15 +19,6 @@ using namespace std;
 using namespace Eigen;
 
 
-double wrap2pi(double angle)
-{
-    // Function to wrap the angles between 0 and 2pi
-    angle = fmod(angle, 2*PI);
-    if(angle < 0)
-        angle+=2*PI;
-
-    return angle;
-}
 
 struct Global_State
 {
@@ -185,14 +175,17 @@ class GlobalPlanner
         double car_length;
         typedef pair <double, string> f_COORDINATE;
 
-        vector<MotionPrimitive> motion_primitives;
+        vector <MotionPrimitive> motion_primitives;
+        vector <MotionPrimitive> swath_p;
 
         vector<double> cost_of_motion;
-        MatrixXd primitive_M= MatrixXd(3,(num_stepsL+num_stepsS)*(21+11)); //num_steps*(28+23)> primitive_M;
+        MatrixXd primitive_M = MatrixXd(3,(num_steps)*(21)); //num_steps*(28+23)> primitive_M;
+        MatrixXd sw_M = MatrixXd(3, num_steps*21*2);
+
         vector<double> thetas;
 
         unordered_map<string, GNode> gmap;
-        unordered_map<string, GNode> hmap;
+        unordered_map<string, Node2D> hmap;
 
         vector<double> xlim {-62, 30};
         vector<double> ylim {-40, 40};
@@ -204,6 +197,9 @@ class GlobalPlanner
         GlobalPlanner(Global_State start_state, Global_State goal_state, double max_steering_angle, double dt,
          double desire_vel, double car_length, double ddx, double ddy);
 
+        void generate_cc(MotionPrimitive& sw, Global_State st, int& i);
+        vector<MotionPrimitive> generate_c(vector<MotionPrimitive> steps);
+
         void generate_motion_primitives();
 
         void PrecomputeCost(vector<double> steerF, vector<double> steerB);
@@ -212,13 +208,14 @@ class GlobalPlanner
 
         string stateHash2D(int sx, int sy);
         
+        void pre_compute2DH(Global_State st, OccGrid occupancy);
         double computeH(Global_State st, OccGrid occupancy);
+        
         double compute2DH(Global_State st, OccGrid occupancy);
         
-        void pre_compute3DH(Global_State st);
-        double compute3DH(Global_State st);
 
-        vector<MotionPrimitive> transform_primitive(Global_State n_st);
+        vector <MotionPrimitive> transform_primitive(Global_State n_st);
+        vector <MotionPrimitive> transform_swath(Global_State n_st);
 
         vector<int> xy2i(Global_State state);
 
@@ -226,7 +223,7 @@ class GlobalPlanner
         
         string get_state_hash(Global_State state);
 
-        bool CollisionCheck(MotionPrimitive motion, OccGrid ocmap);
+        bool CollisionCheck(Global_State st, MotionPrimitive motion, OccGrid ocmap);
 
         bool isGoalState(Global_State st);
         
@@ -246,6 +243,16 @@ class GlobalPlanner
 
         vector<MotionPrimitive> startS_primitives();
 
+        double wrap2pi(double angle)
+        {
+            // Function to wrap the angles between 0 and 2pi
+            angle = fmod(angle, 2*PI);
+            if(angle < 0)
+                angle+=2*PI;
+
+            return angle;
+        }
+
     
 };
 
@@ -253,15 +260,11 @@ class GlobalPlanner
 
 /*
 ToDo's:
-    - Goal Region Define, (Check if Goal Reached)
-    - Occupancy Grid
-    - Heuristic Computation (Preferably Pre-Compute)
     - Collision Checking
         -Preliminary : Circle Based
         -Improved : 3 Circle Based
         -Final : Swath generation (pre-compute) and check.
     - Weighing the forward and backward motion primitives differently (in cost or heuristics)
-    - Occupancy Grid integration
     - Anytime D* 
 
 Completed:
@@ -273,4 +276,12 @@ Completed:
     - Preliminary Goal State check implemented
     - Update state_hash to incorporate [x,y,theta], & not just [x,y]
     - Added parking class 
+    - Occupancy Grid
+    - Heuristic Computation (Preferably Pre-Compute)
+    - Goal Region Define, (Check if Goal Reached)
+    - Occupancy Grid integration
+    - Collision Checking (Preli
+
+    minary)
+
 */

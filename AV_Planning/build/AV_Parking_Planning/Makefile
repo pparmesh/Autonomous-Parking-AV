@@ -741,6 +741,7 @@ src/AV_Planner.o: src/AV_Planner.cpp.o
 
 # target to build an object file
 src/AV_Planner.cpp.o:
+	cd /home/prateek/fall_19/16782/AV_Planning/AV_Planning/build && $(MAKE) -f AV_Parking_Planning/CMakeFiles/AV_Parking_Planning.dir/build.make AV_Parking_Planning/CMakeFiles/AV_Parking_Planning.dir/src/AV_Planner.cpp.o
 	cd /home/prateek/fall_19/16782/AV_Planning/AV_Planning/build && $(MAKE) -f AV_Parking_Planning/CMakeFiles/AV_Parking_Planning_node.dir/build.make AV_Parking_Planning/CMakeFiles/AV_Parking_Planning_node.dir/src/AV_Planner.cpp.o
 .PHONY : src/AV_Planner.cpp.o
 
@@ -750,6 +751,7 @@ src/AV_Planner.i: src/AV_Planner.cpp.i
 
 # target to preprocess a source file
 src/AV_Planner.cpp.i:
+	cd /home/prateek/fall_19/16782/AV_Planning/AV_Planning/build && $(MAKE) -f AV_Parking_Planning/CMakeFiles/AV_Parking_Planning.dir/build.make AV_Parking_Planning/CMakeFiles/AV_Parking_Planning.dir/src/AV_Planner.cpp.i
 	cd /home/prateek/fall_19/16782/AV_Planning/AV_Planning/build && $(MAKE) -f AV_Parking_Planning/CMakeFiles/AV_Parking_Planning_node.dir/build.make AV_Parking_Planning/CMakeFiles/AV_Parking_Planning_node.dir/src/AV_Planner.cpp.i
 .PHONY : src/AV_Planner.cpp.i
 
@@ -759,8 +761,36 @@ src/AV_Planner.s: src/AV_Planner.cpp.s
 
 # target to generate assembly for a file
 src/AV_Planner.cpp.s:
+	cd /home/prateek/fall_19/16782/AV_Planning/AV_Planning/build && $(MAKE) -f AV_Parking_Planning/CMakeFiles/AV_Parking_Planning.dir/build.make AV_Parking_Planning/CMakeFiles/AV_Parking_Planning.dir/src/AV_Planner.cpp.s
 	cd /home/prateek/fall_19/16782/AV_Planning/AV_Planning/build && $(MAKE) -f AV_Parking_Planning/CMakeFiles/AV_Parking_Planning_node.dir/build.make AV_Parking_Planning/CMakeFiles/AV_Parking_Planning_node.dir/src/AV_Planner.cpp.s
 .PHONY : src/AV_Planner.cpp.s
+
+src/global_planner.o: src/global_planner.cpp.o
+
+.PHONY : src/global_planner.o
+
+# target to build an object file
+src/global_planner.cpp.o:
+	cd /home/prateek/fall_19/16782/AV_Planning/AV_Planning/build && $(MAKE) -f AV_Parking_Planning/CMakeFiles/AV_Parking_Planning.dir/build.make AV_Parking_Planning/CMakeFiles/AV_Parking_Planning.dir/src/global_planner.cpp.o
+.PHONY : src/global_planner.cpp.o
+
+src/global_planner.i: src/global_planner.cpp.i
+
+.PHONY : src/global_planner.i
+
+# target to preprocess a source file
+src/global_planner.cpp.i:
+	cd /home/prateek/fall_19/16782/AV_Planning/AV_Planning/build && $(MAKE) -f AV_Parking_Planning/CMakeFiles/AV_Parking_Planning.dir/build.make AV_Parking_Planning/CMakeFiles/AV_Parking_Planning.dir/src/global_planner.cpp.i
+.PHONY : src/global_planner.cpp.i
+
+src/global_planner.s: src/global_planner.cpp.s
+
+.PHONY : src/global_planner.s
+
+# target to generate assembly for a file
+src/global_planner.cpp.s:
+	cd /home/prateek/fall_19/16782/AV_Planning/AV_Planning/build && $(MAKE) -f AV_Parking_Planning/CMakeFiles/AV_Parking_Planning.dir/build.make AV_Parking_Planning/CMakeFiles/AV_Parking_Planning.dir/src/global_planner.cpp.s
+.PHONY : src/global_planner.cpp.s
 
 src/local_planner.o: src/local_planner.cpp.o
 
@@ -843,6 +873,9 @@ help:
 	@echo "... src/AV_Planner.o"
 	@echo "... src/AV_Planner.i"
 	@echo "... src/AV_Planner.s"
+	@echo "... src/global_planner.o"
+	@echo "... src/global_planner.i"
+	@echo "... src/global_planner.s"
 	@echo "... src/local_planner.o"
 	@echo "... src/local_planner.i"
 	@echo "... src/local_planner.s"
