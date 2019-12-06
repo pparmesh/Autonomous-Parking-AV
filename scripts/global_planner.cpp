@@ -1,4 +1,4 @@
-#include "global_planner.h"
+    #include "global_planner.h"
 #include <ctime>
 // #include <iostream>
 // #include <math.h>
@@ -205,7 +205,7 @@ void GlobalPlanner::PrecomputeCost(vector<double> steerF, vector<double> steerB)
         if(delta == 0)
             cost = 1;   
         else
-            cost = 10*abs(delta); 
+            cost = 15*abs(delta); 
         // cost = abs(delta)*180/PI;
         cost_of_motion.push_back(cost);  
     cout<<"detla: "<<delta<<", cost: "<<cost<<endl;
@@ -610,7 +610,7 @@ bool GlobalPlanner::isGoalState(Global_State st)
 {
     // Function to check if the goal_state st can be considered as the goal state
     // Considering a euclidean distance < epsilon to check if goal found (Temporary)
-    double eps = 0.5;
+    double eps = 1;
     double diff = sqrt((st.x-goal_state.x)*(st.x-goal_state.x) + (st.y-goal_state.y)*(st.y-goal_state.y));// + (st.theta-goal_state.theta)*(st.theta-goal_state.theta));
     double d_thet = abs(st.theta-goal_state.theta);
     double dstr = PI/28;
@@ -677,7 +677,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
 
     int mexp = 0;
     // Expand till open list is not empty
-    double wt = 2.4;    // weight for weighted heuristic
+    double wt = 8;    // weight for weighted heuristic
     while(!open_list.empty() && !closed_list[goal])
     {   
         // Pick index with lowest f value from open list. Set will help in doing this as it is ordered.
@@ -751,6 +751,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
 
             double cost = cost_of_motion[mp_i];
             hNew = computeH(q_new, ocmap);
+            // cout<<hNew<<" "<<cost<<endl;
             // hNew = compute2DH(q_new, ocmap);
             if(hNew == -1)  // skipping the state if 2D heuristic couldn't find path to goal-state
                 continue;
@@ -827,8 +828,11 @@ void GlobalPlanner::motion_primitive_writer(vector<MotionPrimitive> mpd, string 
 void GlobalPlanner::publish_path(vector<Global_State> path, string file_name)
 {
     ofstream ffr (file_name);
-    for(Global_State sf : path)
-        ffr<<sf.x<<", "<<sf.y<<", "<<sf.theta<<endl;
+    // for(Global_State sf : path)
+    //     ffr<<sf.x<<", "<<sf.y<<", "<<sf.theta<<endl;
+
+    for(int i=path.size()-1; i>=0;--i)
+        ffr<<path[i].x<<", "<<path[i].y<<", "<<wrap2pi(path[i].theta + PI)<<endl;
     ffr.close();
 }
 
@@ -1141,19 +1145,20 @@ int main()
 {
     double dx = 0.2, dy = 0.2;     // Grid discretization
     double v_des = 1.2;     // Desrired Velocity
-    double l_car = 2.2;     // Wheelbase of the vehicle
+    double l_car = 3.3;     // Wheelbase of the vehicle
     double delT = 0.1;      // delta time of the simulation
     double steer_limit = PI*61/180;
 
     clock_t start_t = clock();
 
-    // Global_State startS = Global_State(-50, -30, 0);
-    // Global_State goalS = Global_State(-13.5, -31.04, 3*PI/4);
-    Global_State startS = Global_State(-15, 30, 3*PI/2);
-    // Global_State goalS = Global_State(-3, -13.7, 0);   //0.40,-31.27,0);
-    Global_State goalS = Global_State(-54.12901306152344, -2.4843921661376953, 0);        //{44}
-    // Global_State goalS = Global_State(2.1477136611938477, -13.62131118774414, PI);      // {38}
+    // Global_State startS = Global_State(-15, 30, 3*PI/2);
+    // Global_State goalS = Global_State(-54.12901306152344, -2.4843921661376953, 0);        //{44}
+    // Global_State goalS = Global_State(24.663219451904297, 0.28649184107780457, PI);   //{12}
+    // Global_State goalS = Global_State(-36.48496627807617, 31.04281234741211, PI/2);
 
+    Global_State goalS = Global_State(-15, 30, PI/2);
+    Global_State startS = Global_State(2.1477136611938477, -13.62131118774414, 0);  //(-54.12901306152344, -2.4843921661376953, PI+0); 
+    
     GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car, dx, dy);
 
     vector<Global_State> vehicle_path;
@@ -1161,7 +1166,7 @@ int main()
     g_planner.generate_motion_primitives();
 
     parking parkV;
-    parkV.reserve_spot({59, 48, 39, 44, 10}); // Setting parking lot as empty
+    parkV.reserve_spot({59, 48, 39, 44, 12, 81, 104, 10}); // Setting parking lot as empty
 
     // instantanting the occupance grid...........
     OccGrid occ(dx, dy);

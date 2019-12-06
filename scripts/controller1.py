@@ -63,7 +63,8 @@ class controller1():
         self.spawn_point=spawn_point1
 
         blueprint_library=self.world.get_blueprint_library()
-        bp=random.choice(blueprint_library.filter('vehicle.bmw.grandtourer'))
+
+        bp=random.choice(blueprint_library.filter('vehicle.audi.tt'))
         color=random.choice(bp.get_attribute('color').recommended_values)
         bp.set_attribute('color',color)
         
@@ -83,7 +84,7 @@ class controller1():
         for i,w in enumerate(spawn_points):
             if i in empty_lot:
                 continue
-            blueprint = random.choice(blueprints.filter('vehicle.bmw.grandtourer'))
+            blueprint = random.choice(blueprints.filter('vehicle.audi.tt'))
             color=random.choice(blueprint.get_attribute('color').recommended_values)
             blueprint.set_attribute('color',color)
             batch.append(carla.command.SpawnActor(blueprint,w))
@@ -106,7 +107,7 @@ class controller1():
                 self._render(self.world)
             
             try:
-                empty_lot = [59, 48, 33, 38, 39,44, 70, 10, 11, 12, 15]
+                empty_lot =[59, 48, 39, 44, 10,70, 81, 12, 104]
                 batch = self.spawn_parkV(empty_lot)
                 client.apply_batch(batch)
             except RuntimeError:

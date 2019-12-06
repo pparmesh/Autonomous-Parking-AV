@@ -9,7 +9,7 @@ class motion():
 		self.theta0 = theta
 		self.dt = delt 		# Simulation fixed time-step 
 		self.num_steps = n  # Number of steps
-		self.L = 2.2	# vehcile wheel-base length
+		self.L = 3.0	# vehcile wheel-base length
 		self.max_steer = 61		# maximium steering angle (radians)
 		self.motion_primitives = []
 
