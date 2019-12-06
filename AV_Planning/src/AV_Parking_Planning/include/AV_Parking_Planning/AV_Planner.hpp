@@ -20,6 +20,7 @@ class AV_Planner
     vector<Global_State> m_global_plan;
     Eigen::MatrixXd m_goal_region_plan;
     bool m_near_goal;
+    int m_goal_ind;
 
   public:
     AV_Planner();

@@ -21,6 +21,7 @@ AV_Planner::AV_Planner() // May need to change constructor
   // Local Planner Parameters
   m_ctrl_freq = 10;
   m_near_goal = false;
+  m_goal_ind = 10;
 }
 
 
@@ -82,7 +83,7 @@ void AV_Planner::publishTrajectory()
 {
     trajectory_msgs::JointTrajectory total_traj;
     // if (!m_near_goal)
-    for (int i=0; i<m_global_plan.size();i++)
+    for (int i=0; i<m_global_plan.size()-m_goal_ind;i++)
     {
       // cout<<"plan: "<<m_global_plan[i].x<<" "<<m_global_plan[i].y<<endl;
       trajectory_msgs::JointTrajectoryPoint point;
@@ -108,7 +109,7 @@ void AV_Planner::run()
     Global_State startS = Global_State(-15, 30, 3*PI/2);
     Global_State goalS = Global_State(-54.12901306152344, -2.4843921661376953, 0);
     set_global_plan(startS, goalS);
-    plan_to_goal(m_global_plan[m_global_plan.size()-5], goalS); // Change when local plan is needed
+    plan_to_goal(m_global_plan[m_global_plan.size()-m_goal_ind], goalS); // Change when local plan is needed
     // plan_to_goal(startS, goalS);
     
   // Run global planner for vehicle and get set global state waypoints
