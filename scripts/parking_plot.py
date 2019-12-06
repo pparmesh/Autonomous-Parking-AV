@@ -117,7 +117,8 @@ class Map():
 			else:
 				pl_x = [a[0], b[0]]
 				pl_y = [a[1], d[1]]
-			# print(i, pl_x, pl_y, ang)
+
+
 			# Computing the occupancy grid indices
 			occX, occY = self.xy2i(pl_x, pl_y)
 			occ_grid[occX, occY]=cp
