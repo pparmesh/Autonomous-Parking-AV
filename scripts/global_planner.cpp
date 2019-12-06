@@ -1157,7 +1157,7 @@ int main()
     // Global_State goalS = Global_State(-36.48496627807617, 31.04281234741211, PI/2);
 
     Global_State goalS = Global_State(-15, 30, PI/2);
-    Global_State startS = Global_State(2.1477136611938477, -13.62131118774414, 0);  //(-54.12901306152344, -2.4843921661376953, PI+0); 
+    Global_State startS = Global_State(2.1477136611938477, -13.62131118774414, 0.0);  //(-54.12901306152344, -2.4843921661376953, PI+0); 
     
     GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car, dx, dy);
 

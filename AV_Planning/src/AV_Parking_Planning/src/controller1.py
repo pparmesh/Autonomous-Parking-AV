@@ -117,7 +117,7 @@ class controller1():
                 self._render(self.world)
             
             try:
-                empty_lot = [59, 48, 33, 38, 39,44, 70, 10, 11, 12, 15]
+                empty_lot = [59, 48, 39, 44, 12, 81, 104, 10, 16]
                 batch = self.spawn_parkV(empty_lot)
                 client.apply_batch(batch)
             except RuntimeError:

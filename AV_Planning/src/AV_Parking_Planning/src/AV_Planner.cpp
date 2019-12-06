@@ -117,7 +117,7 @@ void AV_Planner::run()
 {
   // Get occupancy grid along with start and goal locations
     Global_State goalS = Global_State(-15, 30, PI/2);
-    Global_State startS = Global_State(-54.12901306152344, -2.4843921661376953, PI);
+    Global_State startS = Global_State(2.1477136611938477, -13.62131118774414, 0.0);
     set_global_plan(startS, goalS);
     // plan_to_goal(m_global_plan[m_global_plan.size()-m_goal_ind], goalS); // Change when local plan is needed
     // plan_to_goal(startS, goalS);

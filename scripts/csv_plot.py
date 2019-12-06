@@ -53,7 +53,7 @@ def plot_swath(startS, goalS):
 
 	f = pd.read_csv("waypoints.csv").values
 
-	xlim = [-62,30]
+	xlim = [-63,31]
 	ylim = [-40, 40]
 
 	l = 0.8

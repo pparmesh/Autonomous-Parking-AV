@@ -3,4 +3,11 @@
 
 	<node pkg="AV_Parking_Planning" type="AV_Parking_Planning_node" name="AV_Parking_Planning" output="screen" required="true">
 	</node>
+	<node
+        pkg="AV_Parking_Planning"
+        type="controller1.py"
+        name="trajectory_subscriber"
+        output="screen">
+    </node>
+
 </launch>
