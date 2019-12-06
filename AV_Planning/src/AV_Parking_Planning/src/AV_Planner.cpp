@@ -29,7 +29,7 @@ void AV_Planner::set_global_plan(Global_State startS, Global_State goalS)
 {
     double dx = 0.2, dy = 0.2;     // Grid discretization
     double v_des = 1.2;     // Desrired Velocity
-    double l_car = 2.2;     // Wheelbase of the vehicle
+    double l_car = 3.3;     // Wheelbase of the vehicle
     double delT = 0.1;      // delta time of the simulation
     double steer_limit = PI*61/180;
 
@@ -39,9 +39,10 @@ void AV_Planner::set_global_plan(Global_State startS, Global_State goalS)
     // Prcomputing the motion primitives
     g_planner.generate_motion_primitives();
 
-    parking parkV;
-    parkV.reserve_spot({59, 48, 39, 44, 10, 70}); // Setting parking lot as empty
+    g_planner.generate_motion_primitives();
 
+    parking parkV;
+    parkV.reserve_spot({59, 48, 39, 44, 12, 81, 104, 10}); // Setting parking lot as empty
     // instantanting the occupance grid...........
     OccGrid occ(dx, dy);
     occ.generate_static_occ(parkV);
@@ -78,27 +79,36 @@ void AV_Planner::plan_to_goal(Global_State pre_goal, Global_State goal)
   cout<<"DONE"<<endl;
   cout<<"Local Plan Size: "<<m_goal_region_plan.rows();
 }
+double AV_Planner::wrap2pi(double angle)
+{
+    // Function to wrap the angles between 0 and 2pi
+    angle = fmod(angle, 2*PI);
+    if(angle < 0)
+        angle+=2*PI;
 
+    return angle;
+}
 void AV_Planner::publishTrajectory()
 {
     trajectory_msgs::JointTrajectory total_traj;
+
     // if (!m_near_goal)
-    for (int i=0; i<m_global_plan.size()-m_goal_ind;i++)
+    for (int i=m_global_plan.size()-1; i>=0;--i)
     {
       // cout<<"plan: "<<m_global_plan[i].x<<" "<<m_global_plan[i].y<<endl;
       trajectory_msgs::JointTrajectoryPoint point;
-      point.positions = {m_global_plan[i].x, m_global_plan[i].y};
+      point.positions = {m_global_plan[i].x, m_global_plan[i].y, wrap2pi(PI+m_global_plan[i].theta)};
       point.velocities = {2,0};      
       total_traj.points.push_back(point);
 
     }
-    for (int i=0; i<m_goal_region_plan.rows();i++)
-    {
-        trajectory_msgs::JointTrajectoryPoint point;
-        point.positions = {m_goal_region_plan(i,0),m_goal_region_plan(i,1)};
-        point.velocities = {m_goal_region_plan(i,2),m_goal_region_plan(i,3)};
-        total_traj.points.push_back(point);
-    }
+    // for (int i=0; i<m_goal_region_plan.rows();i++)
+    // {
+    //     trajectory_msgs::JointTrajectoryPoint point;
+    //     point.positions = {m_goal_region_plan(i,0),m_goal_region_plan(i,1)};
+    //     point.velocities = {m_goal_region_plan(i,2),m_goal_region_plan(i,3)};
+    //     total_traj.points.push_back(point);
+    // }
     cout<<"Traj size: "<<total_traj.points.size();
     m_traj_pub.publish(total_traj);
 }
@@ -106,10 +116,10 @@ void AV_Planner::publishTrajectory()
 void AV_Planner::run()
 {
   // Get occupancy grid along with start and goal locations
-    Global_State startS = Global_State(-15, 30, 3*PI/2);
-    Global_State goalS = Global_State(-54.12901306152344, -2.4843921661376953, 0);
+    Global_State goalS = Global_State(-15, 30, PI/2);
+    Global_State startS = Global_State(-54.12901306152344, -2.4843921661376953, PI);
     set_global_plan(startS, goalS);
-    plan_to_goal(m_global_plan[m_global_plan.size()-m_goal_ind], goalS); // Change when local plan is needed
+    // plan_to_goal(m_global_plan[m_global_plan.size()-m_goal_ind], goalS); // Change when local plan is needed
     // plan_to_goal(startS, goalS);
     
   // Run global planner for vehicle and get set global state waypoints

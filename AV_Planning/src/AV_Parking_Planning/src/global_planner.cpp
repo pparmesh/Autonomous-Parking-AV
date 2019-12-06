@@ -1,5 +1,5 @@
-#include "AV_Parking_Planning/global_planner.h"
-#include <ctime>
+    #include "AV_Parking_Planning/global_planner.h"
+// #include <ctime>
 // #include <iostream>
 // #include <math.h>
 // #include <vector>
@@ -150,45 +150,48 @@ void GlobalPlanner::generate_motion_primitives()
   
 }
 
-vector<MotionPrimitive> GlobalPlanner::generate_c(vector<MotionPrimitive> steps)
-{
-    vector <MotionPrimitive> omap;
-    for(MotionPrimitive a : steps)
-    {
-        MotionPrimitive p;
-        vector<Global_State> pp = a.get_primitive();
-        for(Global_State ap : pp)
-        {
-            double x = ap.x;
-            double y = ap.y;
-            double ang = wrap2pi(ap.theta);
+// vector<MotionPrimitive> GlobalPlanner::generate_c(vector<MotionPrimitive> steps)
+// {
+//     vector <MotionPrimitive> omap;
+//     for(MotionPrimitive a : steps)
+//     {
+//         MotionPrimitive p;
+//         vector<Global_State> pp = a.get_primitive();
+//         for(Global_State ap : pp)
+//         {
+//             double x = ap.x;
+//             double y = ap.y;
+//             double ang = wrap2pi(ap.theta);
 
-            p.insert_state(Global_State(x-cos(ang), y-sin(ang), ang));
-            p.insert_state(Global_State(x+cos(ang), y+sin(ang), ang));
-        }
-        omap.push_back(p);
-    }
-    return omap;
+//             p.insert_state(Global_State(x-cos(ang), y-sin(ang), ang));
+//             p.insert_state(Global_State(x+cos(ang), y+sin(ang), ang));
+//         }
+//         omap.push_back(p);
+//     }
+//     return omap;
 
-}
+// }
 
 void GlobalPlanner::generate_cc(MotionPrimitive& sw, Global_State st, int& i)
 {
 	// Function to add the circle centers for all the states in the current motion primitive.
-	double x1 = st.x;
+	double x0 = start_state.x;
+    double y0 = start_state.y;
+
+    double x1 = st.x;
 	double y1 = st.y ;
 	double ang = wrap2pi(st.theta);
 
 	double x2 = x1 - cos(ang);
 	double y2 = y1 - sin(ang);
 	sw.insert_state(Global_State(x2, y2, ang));
-	sw_M.col(i)<<x2-x1, y2-y1, 1.0;
+	sw_M.col(i)<<x2-x0, y2-y0, 1.0;
 	++i;
 
 	x2 = x1 +cos(ang);
 	y2 = y1+ sin(ang);
 	sw.insert_state(Global_State(x2, y2, ang));
-	sw_M.col(i)<<x2-x1, y2-y1, 1.0;
+	sw_M.col(i)<<x2-x0, y2-y0, 1.0;
 	++i;
 }
 
@@ -427,7 +430,7 @@ vector<MotionPrimitive> GlobalPlanner::transform_primitive(Global_State n_st)
     // Computing the relative transformation (rotation and translation) between the two motion primitive frames.
     double dx = n_st.x - start_state.x;
     double dy = n_st.y - start_state.y;
-    double dtheta = n_st.theta - start_state.theta;
+    double dtheta = wrap2pi(n_st.theta - start_state.theta);
 
 
     // Formulating the transformation matrix
@@ -465,7 +468,7 @@ vector<MotionPrimitive> GlobalPlanner::transform_swath(Global_State n_st)
 	// ++++++++++++++++++++++++Function to tranform (translate + rotate) te circle centers for swath generation
 	double dx = n_st.x - start_state.x;
 	double dy = n_st.y - start_state.y;
-	double dtheta = n_st.theta - start_state.theta;
+	double dtheta = wrap2pi(n_st.theta - start_state.theta);
 
 	// Formulating the transformation matrix.......
 	Matrix <double, 3, 3>   M;
@@ -474,7 +477,7 @@ vector<MotionPrimitive> GlobalPlanner::transform_swath(Global_State n_st)
 		0, 0, 1;
 
 	const int nmp = 21;		// number of motion primitives
-	Matrix<double, 3, num_steps*4*nmp> n_p = M*sw_M;
+	Matrix<double, 3, num_steps*2*nmp> n_p = M*sw_M;
 
 	// Converting the matrix to a vector of motion primitives
 	vector <MotionPrimitive> smap;
@@ -535,31 +538,49 @@ bool GlobalPlanner::CollisionCheck(Global_State st, MotionPrimitive motion, OccG
     // }
 
     // Collision check for swath..........................
-    vector< vector<int>> ic;
-    for(Global_State stg : m_step)
-    	ic.push_back(xy2i(stg));
 
     vector <vector<int>> obs_map = ocmap.get_occmap();
-    vector<int> state = xy2i(st);
-    int x1 = max(0, state[0]-20);
-    int x2 = min(mapX, state[0] + 20);
-    int y1 = max(0, state[1]-20);
-    int y2 = min(mapY, state[1] + 20)   ;
-
-    for(int i=x1;i<x2;++i)
+    // vector<int> state = xy2i(st);
+    // int x1 = max(0, state[0]-30);
+    // int x2 = min(mapX, state[0] + 30);
+    // int y1 = max(0, state[1]-30);
+    // int y2 = min(mapY, state[1] + 30)   ;
+    int x1, x2, y1, y2;
+    int roi = 30;
+    double eps = 1.2/0.2;
+    for(Global_State ds : m_step)
     {
-        for(int j=y1; j<y2;++j)
+        vector <int> state = xy2i(ds);
+        x1 = max(0, state[0]-roi);
+        x2 = min(mapX, state[0]+roi);
+        y1 = max(0, state[1]-roi);
+        y2 = min(mapY, state[1]+roi);
+        for(int i=x1; i<x2; ++i)
         {
-            for(int p = 0;p<ic.size();++p)
+            for(int j=y1; j<y2; ++j)
             {
-                if(obs_map[i][j]==0)
+                if(obs_map[i][j] == 0)
                     continue;
-                double d = sqrt((ic[p][0]-i)*(ic[p][0]-i) + (ic[p][1]-j)*(ic[p][1]-j));
-                if(d<=1.05)
+                double d = sqrt((state[0]-i)*(state[0]-i) + (state[1]-j)*(state[1]-j));
+                if(d < eps)
                     return 1;
             }
         }
-    }    
+    }
+    // for(int i=x1;i<x2;++i)
+    // {
+    //     for(int j=y1; j<y2;++j)
+    //     {
+    //         for(int p = 0;p<ic.size();++p)
+    //         {
+    //             if(obs_map[i][j]==0)
+    //                 continue;
+    //             double d = sqrt((ic[p][0]-i)*(ic[p][0]-i) + (ic[p][1]-j)*(ic[p][1]-j));
+    //             if(d<=1.2)
+    //                 return 1;
+    //         }
+    //     }
+    // }    
 
     return 0;
 }
@@ -589,7 +610,7 @@ bool GlobalPlanner::isGoalState(Global_State st)
 {
     // Function to check if the goal_state st can be considered as the goal state
     // Considering a euclidean distance < epsilon to check if goal found (Temporary)
-    double eps = 0.5;
+    double eps = 1;
     double diff = sqrt((st.x-goal_state.x)*(st.x-goal_state.x) + (st.y-goal_state.y)*(st.y-goal_state.y));// + (st.theta-goal_state.theta)*(st.theta-goal_state.theta));
     double d_thet = abs(st.theta-goal_state.theta);
     double dstr = PI/28;
@@ -656,7 +677,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
 
     int mexp = 0;
     // Expand till open list is not empty
-    double wt = 2.4;    // weight for weighted heuristic
+    double wt = 8;    // weight for weighted heuristic
     while(!open_list.empty() && !closed_list[goal])
     {   
         // Pick index with lowest f value from open list. Set will help in doing this as it is ordered.
@@ -730,6 +751,7 @@ vector<Global_State> GlobalPlanner::A_star(Global_State start_state, Global_Stat
 
             double cost = cost_of_motion[mp_i];
             hNew = computeH(q_new, ocmap);
+            // cout<<hNew<<" "<<cost<<endl;
             // hNew = compute2DH(q_new, ocmap);
             if(hNew == -1)  // skipping the state if 2D heuristic couldn't find path to goal-state
                 continue;
@@ -775,11 +797,12 @@ void GlobalPlanner::print_primitives(vector<MotionPrimitive> mpd)
 void GlobalPlanner::motion_primitive_writer(vector<MotionPrimitive> mpd, string file_name)
 {
     // Converting the vector of MotionPrimitives into a 2d Vector.
-    vector< vector<double>> pmap (num_steps, vector<double> {0});
+    int n = mpd[0].get_primitive().size();
+    vector< vector<double>> pmap (n, vector<double> {0});
     for(MotionPrimitive m : mpd)
     {
         vector<Global_State> mj = m.get_primitive();
-        cout<<mj.size()<<endl;
+        // cout<<mj.size()<<endl;
         if (mj.size() < 8)
             continue;       // ignoring the motion primitives with the 8 steps curently
         for(int e=0;e<mj.size();++e)
@@ -805,8 +828,11 @@ void GlobalPlanner::motion_primitive_writer(vector<MotionPrimitive> mpd, string 
 void GlobalPlanner::publish_path(vector<Global_State> path, string file_name)
 {
     ofstream ffr (file_name);
-    for(Global_State sf : path)
-        ffr<<sf.x<<", "<<sf.y<<", "<<sf.theta<<endl;
+    // for(Global_State sf : path)
+    //     ffr<<sf.x<<", "<<sf.y<<", "<<sf.theta<<endl;
+
+    for(int i=path.size()-1; i>=0;--i)
+        ffr<<path[i].x<<", "<<path[i].y<<", "<<wrap2pi(path[i].theta + PI)<<endl;
     ffr.close();
 }
 
@@ -851,16 +877,54 @@ void OccGrid::update_static_occ(vector<int> veh_i, int full)
 vector<double> OccGrid::pBoxlim(Global_State ploc)
 {
     // Function to compute the parking box limits [x,y] 
+    double wid = w/2;
     double x = ploc.x;
     double y = ploc.y;
-    double thet = abs(ploc.theta);
+    double thet = wrap2pi(ploc.theta);
     vector<double> xy;
-    if(thet>=3.14)
-        thet = 0;
-    xy.push_back(x - cos(thet)*(l/2) - sin(thet)*(w/2));
-    xy.push_back(x + cos(thet)*(l/2) + sin(thet)*(w/2));
-    xy.push_back(y - cos(thet)*(w/2) - sin(thet)*(l/2));
-    xy.push_back(y + cos(thet)*(w/2) + sin(thet)*(l/2));
+    
+    double ax = x + lf*cos(thet) + wid*sin(thet);
+    double bx = x + lf*cos(thet) - wid*sin(thet);
+    double cx = x - lb*cos(thet) - wid*sin(thet);
+    double dx = x - lb*cos(thet) + wid*sin(thet);
+    double ay = y + lf*sin(thet) - wid*cos(thet);
+    double by = y + lf*sin(thet) + wid*cos(thet);
+    double cy = y - lb*sin(thet) + wid*cos(thet);
+    double dy = y - lb*sin(thet) - wid*cos(thet);
+
+    if(thet == 0)
+    {
+        xy.push_back(cx);
+        xy.push_back(bx);
+        xy.push_back(dy);
+        xy.push_back(cy);
+    }
+    else if(thet <= (0.1+PI/2))
+    {
+        xy.push_back(bx);
+        xy.push_back(ax);
+        xy.push_back(dy);
+        xy.push_back(ay);
+    }
+    else if(thet <= (0.1 + PI))
+    {
+        xy.push_back(bx);
+        xy.push_back(cx);
+        xy.push_back(by);
+        xy.push_back(ay);
+    }
+    else
+    {
+        xy.push_back(ax);
+        xy.push_back(bx);
+        xy.push_back(ay);
+        xy.push_back(dy);
+    }
+
+    // xy.push_back(x - cos(thet)*(l/2) - sin(thet)*(w/2));
+    // xy.push_back(x + cos(thet)*(l/2) + sin(thet)*(w/2));
+    // xy.push_back(y - cos(thet)*(w/2) - sin(thet)*(l/2));
+    // xy.push_back(y + cos(thet)*(w/2) + sin(thet)*(l/2));
     return xy;
 }
 
@@ -1081,19 +1145,20 @@ void GlobalPlanner::print_path(vector<Global_State> path)
 // {
 //     double dx = 0.2, dy = 0.2;     // Grid discretization
 //     double v_des = 1.2;     // Desrired Velocity
-//     double l_car = 2.2;     // Wheelbase of the vehicle
+//     double l_car = 3.3;     // Wheelbase of the vehicle
 //     double delT = 0.1;      // delta time of the simulation
 //     double steer_limit = PI*61/180;
 
 //     clock_t start_t = clock();
 
-//     // Global_State startS = Global_State(-50, -30, 0);
-//     // Global_State goalS = Global_State(-13.5, -31.04, 3*PI/4);
-//     Global_State startS = Global_State(-15, 30, 3*PI/2);
-//     // Global_State goalS = Global_State(-3, -13.7, 0);   //0.40,-31.27,0);
-//     Global_State goalS = Global_State(-54.12901306152344, -2.4843921661376953, 0);        //{44}
-//     // Global_State goalS = Global_State(2.1477136611938477, -13.62131118774414, PI);      // {38}
+//     // Global_State startS = Global_State(-15, 30, 3*PI/2);
+//     // Global_State goalS = Global_State(-54.12901306152344, -2.4843921661376953, 0);        //{44}
+//     // Global_State goalS = Global_State(24.663219451904297, 0.28649184107780457, PI);   //{12}
+//     // Global_State goalS = Global_State(-36.48496627807617, 31.04281234741211, PI/2);
 
+//     Global_State goalS = Global_State(-15, 30, PI/2);
+//     Global_State startS = Global_State(2.1477136611938477, -13.62131118774414, 0);  //(-54.12901306152344, -2.4843921661376953, PI+0); 
+    
 //     GlobalPlanner g_planner(startS, goalS, steer_limit, delT, v_des, l_car, dx, dy);
 
 //     vector<Global_State> vehicle_path;
@@ -1101,7 +1166,7 @@ void GlobalPlanner::print_path(vector<Global_State> path)
 //     g_planner.generate_motion_primitives();
 
 //     parking parkV;
-//     parkV.reserve_spot({59, 48, 39, 44, 10, 70}); // Setting parking lot as empty
+//     parkV.reserve_spot({59, 48, 39, 44, 12, 81, 104, 10}); // Setting parking lot as empty
 
 //     // instantanting the occupance grid...........
 //     OccGrid occ(dx, dy);
@@ -1111,18 +1176,20 @@ void GlobalPlanner::print_path(vector<Global_State> path)
 //     // ---------Checking if the goal state is empty----------------------
 //     vector <int> ind = g_planner.xy2i(goalS);
 //     if(occ.isEmpty(ind[0], ind[1]))
-//         cout<<"Vehicle can be parked at the goal state \n";
+//         cout<<"-------->> Vehicle can be parked at the goal state \n";
 //     else
 //     {
-//         cout<<"Vehicle cannot be parked at the goal stare, Exiting........\n";
+//         cout<<"-------->> Vehicle cannot be parked at the goal stare, Exiting........\n";
 //         return 0;
 //     }
 
 //     // g_planner.motion_primitive_writer(g_planner.startS_primitives(), "startS.csv");
 //     // vector <MotionPrimitive> pp = g_planner.transform_primitive(goalS);
 //     // cout<<"+++\n+++++++++\n+++++++++"<<endl;
+//     // // g_planner.motion_primitive_writer(g_planner.swath_p, "swath.csv");
 //     // g_planner.motion_primitive_writer(pp, "goalS.csv");
-    
+//     // vector <MotionPrimitive> ppa = g_planner.transform_swath(goalS);
+//     // g_planner.motion_primitive_writer(ppa, "swath.csv");
 //     // g_planner.print_primitives(pp);
 
 //     // Pre-Computing the 2D heuristic....

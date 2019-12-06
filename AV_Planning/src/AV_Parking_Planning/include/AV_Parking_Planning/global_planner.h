@@ -7,12 +7,12 @@
 #include <cfloat>
 #include <unordered_map>
 #include <set>
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 #include <fstream>
 
 #define num_steps 12
 #define PI 3.141592654
-#define mapX 460    // xlim [-62, 30]
+#define mapX 470    // xlim [-62, 30]
 #define mapY 400    // ylim [-40,  40]
 
 using namespace std;
@@ -95,9 +95,10 @@ class parking
 class OccGrid
 {
     private:
-        double l = 5.142044059999996;   // Dimensions of each parking space
+        double lb = 5.142044059999996/2;
+        double lf = 5.142044059999996-lb;   // Dimensions of each parking space
         double w = 2.7572021484375;     // dimensions of each parking space
-        double xlim[2] = {-62, 30};
+        double xlim[2] = {-63, 31};
         double ylim[2] = {-40, 40};
         double dx = 0.2;
         double dy = 0.2;
@@ -125,6 +126,15 @@ class OccGrid
         void update_static_occ(vector <int> veh_i, int full);
         vector<vector<int>> get_occmap();
         void occ_map_publish(string file_name);
+        double wrap2pi(double angle)
+        {
+            // Function to wrap the angles between 0 and 2pi
+            angle = fmod(angle, 2*PI);
+            if(angle < 0)
+                angle+=2*PI;
+
+            return angle;
+        }
 
 };
 // --------___________-------------___________------_______________----_____----
@@ -187,7 +197,7 @@ class GlobalPlanner
         unordered_map<string, GNode> gmap;
         unordered_map<string, Node2D> hmap;
 
-        vector<double> xlim {-62, 30};
+        vector<double> xlim {-63, 31};
         vector<double> ylim {-40, 40};
         double dx = 0.2;
         double dy = 0.2;
@@ -198,7 +208,6 @@ class GlobalPlanner
          double desire_vel, double car_length, double ddx, double ddy);
 
         void generate_cc(MotionPrimitive& sw, Global_State st, int& i);
-        vector<MotionPrimitive> generate_c(vector<MotionPrimitive> steps);
 
         void generate_motion_primitives();
 

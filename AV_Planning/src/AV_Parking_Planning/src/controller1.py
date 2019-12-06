@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+
+
 '''
 Script to Control the vehicles using the LQR Controller. 
 [No Rendering]
@@ -13,17 +16,21 @@ from __future__ import print_function
 import glob
 import os
 import sys
-try:
-    sys.path.append(glob.glob('../../PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
-        sys.version_info.major,
-        sys.version_info.minor,
-        'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
-except IndexError:
-    pass
+
+# try:
+#     sys.path.append(glob.glob('carla-*%d.%d-%s.egg' % (
+#         sys.version_info.major,
+#         sys.version_info.minor,
+#         'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
+# except IndexError:
+#     pass
 
 import carla
 import argparse
 import random
+import rospy
+from trajectory_msgs.msg import JointTrajectory
+from trajectory_msgs.msg import JointTrajectoryPoint
 
 
 # -------importing the LQR Controller-------------
@@ -102,6 +109,10 @@ class controller1():
             self.world = client.load_world("Parking1")
             self.world.set_weather(getattr(carla.WeatherParameters, "ClearNoon"))
             self.map=self.world.get_map()
+            settings = self.world.get_settings()
+            settings.fixed_delta_seconds = 1/30
+            self.world.apply_settings(settings)
+
             if self.no_rendering:  # Disabling the rendering 
                 self._render(self.world)
             
@@ -113,7 +124,7 @@ class controller1():
                 pass 
 
             try:
-                self.ref_traj=np.load('waypoints.npy')
+                # self.ref_traj=np.load('waypoints.npy')
                 self.actor_spawn()  #spawning the actor
                 self.contoller=Controller2D(self.player,self.ref_traj,carla)
             except RuntimeError:
@@ -133,12 +144,15 @@ class controller1():
                             break
                         except:
                             break
+                except rospy.ROSInterruptException:
+                    rospy.loginfo('Shutting down')
                 except RuntimeError:    
-                    pass
+                    break
         finally:
+            print('in finally')
             # if (self.world and self.world.recording_enabled):
             #     self.client.stop_recorder()
-            self.world - client.reload_world()
+            self.world = client.reload_world()
             actors = self.world.get_actors()
             for actor in actors:
                 try:
@@ -152,21 +166,26 @@ class controller1():
             except ERROR: 
                 pass
     
-    def trajectory_subscriber_shutdown():
+    def trajectory_subscriber_shutdown(self):
         print('\n\033[95m' + '*' * 30 + ' ROS Node trajectory_subscriber SHUTDOWN ' + '*' * 30 + '\033[00m\n')
 
-    def LQR_control_callback(traj_msg): 
+    def LQR_control_callback(self, traj_msg): 
         # Iterate over trajectory points and store them in reference trajectory
-        for point in traj_msg.points:
-            
+        for i,point in enumerate(traj_msg.points):
+            if i==0:
+                traj = np.array(point.positions).reshape(1,-1)
+            else:
+                traj = np.vstack((traj,np.array(point.positions).reshape(1,-1) ))
+        # print(traj.shape)
+        traj[:,1] = -traj[:,1]
+        traj[:,2] = -traj[:,2]
+        self.ref_traj = traj
+        print(traj.shape)
 
         
 
 def main():
-    # Init ROS Node
-    rospy.init_node('trajectory_subscriber', anonymous=True)
-    rospy.Subscriber("/planner/trajectory", JointTrajectory, LQR_control_callback)
-    rospy.wait_for_message("/planner/trajectory", JointTrajectory)
+    
 
     argparser=argparse.ArgumentParser(description='CARLA Control Client')
     argparser.add_argument('-v', '--verbose',action='store_true',dest='debug',help='print debug information')
@@ -189,12 +208,17 @@ def main():
     try:
 
         cnlr=controller1()
+        # Init ROS Node
+        rospy.init_node('trajectory_subscriber', anonymous=True)
+        rospy.Subscriber("/planner/trajectory", JointTrajectory, cnlr.LQR_control_callback)
+        rospy.wait_for_message("/planner/trajectory", JointTrajectory)
         cnlr.game_loop(args)
-
-    except KeyboardInterrupt:
-        print('\nCancelled by user. Bye!')
-    except:
-        pass
+    except rospy.ROSInterruptException:
+        rospy.loginfo('Shutting down')
+    # except KeyboardInterrupt:
+    #     print('\nCancelled by user. Bye!')
+    # except:
+    #     pass
 
     rospy.spin()
     r = rospy.Rate(10)

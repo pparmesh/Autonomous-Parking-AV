@@ -30,6 +30,8 @@ class AV_Planner
     void set_final_plan(); // populates m_reference_trajectory
     void publishTrajectory();
     void plan_to_goal(Global_State a, Global_State b);
+    double wrap2pi(double angle);
+
     void run();
 
 };

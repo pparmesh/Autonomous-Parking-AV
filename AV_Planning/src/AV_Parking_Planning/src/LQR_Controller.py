@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 The LQR controller for lateral control of vehicles in Carla.
 Author: Ashish Roongta
@@ -39,7 +41,7 @@ class Controller2D(object):
         self._lf=1.0    # length from front tire to the center of mass
         self._Ca=13000  # cornering stiffness of each tire
         self._Iz=3500   # Yaw inertia
-        self._f=0.01   # friction coefficient
+        self._f=0.3   # friction coefficient
         phy=vehicle.get_physics_control()
         # phy.mass=2000
         # vehicle.apply_physics_control(phy)
@@ -51,11 +53,11 @@ class Controller2D(object):
         self._last_timestamp=0.0
         self._dt=1/30   # dt for fixed time step, at 30 fps
         self._last_yaw=0.0
-        self._look_ahead=5
-        self._curv_ld=5
+        self._look_ahead=10
+        self._curv_ld=10
         self._frame=0.0
         self._last_vx_error=0.0
-        self.v_desired=3*np.ones(self._waypoints.shape[0])
+        self.v_desired=2*np.ones(self._waypoints.shape[0])
         self.traj_curv = self.curvature(self._waypoints)
 
 
@@ -119,19 +121,19 @@ class Controller2D(object):
         x=waypoints[:,0]
         y=waypoints[:,1]
         sig=10
-        xp = scipy.ndimage.filters.gaussian_filter1d(input=x,sigma=sig,order=1)
-        xpp = scipy.ndimage.filters.gaussian_filter1d(input=x,sigma=sig,order=2)
-        yp = scipy.ndimage.filters.gaussian_filter1d(input=y,sigma=sig,order=1)
-        ypp = scipy.ndimage.filters.gaussian_filter1d(input=y,sigma=sig,order=2)
-        curv=np.zeros(len(waypoints))
-        for i in range(len(xp)):
-            curv[i] = ((xp[i]*ypp[i] - yp[i]*xpp[i])/(xp[i]**2 + yp[i]**2)**1.5)
+        # xp = scipy.ndimage.filters.gaussian_filter1d(input=x,sigma=sig,order=1)
+        # xpp = scipy.ndimage.filters.gaussian_filter1d(input=x,sigma=sig,order=2)
+        # yp = scipy.ndimage.filters.gaussian_filter1d(input=y,sigma=sig,order=1)
+        # ypp = scipy.ndimage.filters.gaussian_filter1d(input=y,sigma=sig,order=2)
+        # curv=np.zeros(len(waypoints))
+        # for i in range(len(xp)):
+        #     curv[i] = ((xp[i]*ypp[i] - yp[i]*xpp[i])/(xp[i]**2 + yp[i]**2)**1.5)
 
-        # x1=gaussian_filter1d(x,sigma=sig,order=1,mode="wrap")
-        # x2=gaussian_filter1d(x1,sigma=sig,order=1,mode="wrap")
-        # y1=gaussian_filter1d(y,sigma=sig,order=1,mode="wrap")
-        # y2=gaussian_filter1d(y1,sigma=sig,order=1,mode="wrap")
-        # curv=np.divide(np.abs(x1*y2-y1*x2),np.power(x1**2+y1**2,3./2))
+        x1=gaussian_filter1d(x,sigma=sig,order=1,mode="wrap")
+        x2=gaussian_filter1d(x1,sigma=sig,order=1,mode="wrap")
+        y1=gaussian_filter1d(y,sigma=sig,order=1,mode="wrap")
+        y2=gaussian_filter1d(y1,sigma=sig,order=1,mode="wrap")
+        curv=np.divide(np.abs(x1*y2-y1*x2),np.power(x1**2+y1**2,3./2))
         return curv
     
     def wrap2pi(self,a):
@@ -194,7 +196,7 @@ class Controller2D(object):
 
                 D=[[0],[0],[0],[0]]
 
-                Q=[[1,0,0,0],[0,1,0,0],[0,0,100,0],[0,0,0,1]]
+                Q=[[1,0,0,0],[0,1,0,0],[0,0,1000,0],[0,0,0,1]]
                 
                 R=10
 
@@ -241,7 +243,7 @@ class Controller2D(object):
 
                 #  Computing the desired steering output
                 steer_output=float(-K*np.transpose(error))*self._conv_rad_to_steer
-                # print('steer:',steer_output)
+                # print(steer_output)
 
 
 
@@ -262,7 +264,7 @@ class Controller2D(object):
                 steer = 0
                 brake_output = 1.0            
             self._controller.throttle=throttle_output
-            self._controller.steer=max(-1.0,(min(1.0,steer_output)))
+            self._controller.steer=max(-1.1,(min(1.1,steer_output)))
             self._controller.brake=brake_output
             vehicle.apply_control(self._controller)
             # if min_idx==(len(waypoints)-1):
