@@ -99,9 +99,9 @@ class controller1():
             client=carla.Client(args.host,args.port)
             client.set_timeout(2.0)
 
-            # self.world=client.get_world()  # recieveing the world info from the simulator
-            self.world = client.load_world("Parking1")
-            self.world.set_weather(getattr(carla.WeatherParameters, "ClearNoon"))
+            self.world=client.get_world()  # recieveing the world info from the simulator
+            # self.world = client.load_world("Parking1")
+            # self.world.set_weather(getattr(carla.WeatherParameters, "ClearNoon"))
             self.map=self.world.get_map()
             if self.no_rendering:  # Disabling the rendering 
                 self._render(self.world)
