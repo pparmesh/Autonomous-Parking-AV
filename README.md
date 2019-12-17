@@ -2,11 +2,12 @@
 Repository for motion planning of Autonomous Vehicles in unstructured environments (pakring lots). <br>
 A lattice based planner was developed for optimal and efficient plans for parking the ego vehicles. The computed vehicle trajectory is tracked with the help of a LQR based lateral and a PID longitudinal controller. Carla simulator was used for this project to allow a realistic physics-enabled scenario generation. <br>
 
-![alt text](Park1.gif)
-![alt text](Park2.gif)
+![alt text](Results/Park1.gif)
+![alt text](Results/Park2.gif)
 
 # Architecture
 The architecture consists of three subsystems: the motion planner, vehicle controller and the simulator. Motion planning subpart was developed in C++ to allow efficient computation, vehicle controller was developed in Python to take advantage of the Carla Python-API. Robotic Operating System (ROS) was used for communication between C++ and Python at each simulation step. <br>
+![alt text](Results/Architecture.png)
 # Execution Instructions
 Launch the Carla simulator using: <br>
 **$ ./CarlaUE4.sh**  <br>
