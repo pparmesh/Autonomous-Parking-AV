@@ -7,7 +7,7 @@ A lattice based planner was developed for optimal and efficient plans for parkin
 
 # Architecture
 The architecture consists of three subsystems: the motion planner, vehicle controller and the simulator. Motion planning subpart was developed in C++ to allow efficient computation, vehicle controller was developed in Python to take advantage of the Carla Python-API. Robotic Operating System (ROS) was used for communication between C++ and Python at each simulation step. <br>
-![alt text](Results/Architecture.png)
+![alt text](Results/Architechture.png)
 # Execution Instructions
 Launch the Carla simulator using: <br>
 **$ ./CarlaUE4.sh**  <br>
